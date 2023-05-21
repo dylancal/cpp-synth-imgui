@@ -1,0 +1,5 @@
+.vs/
+*.db
+.vs/imguiTest/v17/.suo
+imguiTest/x64/Debug/imguiTest.tlog/link.read.2.tlog
+*.tlog

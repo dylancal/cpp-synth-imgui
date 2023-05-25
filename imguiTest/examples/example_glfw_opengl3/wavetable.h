@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
-#define TABLE_SIZE   (2048)
+#define TABLE_SIZE   (872)
 #ifndef M_PI
 #define M_PI  (3.14159265)
 #endif
@@ -12,15 +12,8 @@ struct Wavetable_t
     float table[TABLE_SIZE]{ 0 };
     float& operator[](int i) { return table[i]; }
     float interpolate_at(float idx) {
-        /*float wl, fl;
-        fl = std::modf(idx, &wl);
-        wl = (int)wl;
-
-        std::cout << "\nIDX: " << idx << "\nWL: " << wl << "\nFL: " << fl << "\nVAL(WL): " << table[(int)wl] << "\nVAL(WL+!): " << table[(int)wl + 1] << "\nINT: " << table[(int)wl] + fl * (table[(int)wl] + table[(int)wl + 1]);
-        return (table[(int)wl] + fl * (table[(int)wl + 1]- table[(int)wl]))/2;*/
         float wl, fl;
         fl = std::modf(idx, &wl);
-        wl = (int)wl;
         return std::lerp(table[(int)wl], table[(int)wl + 1], fl);
     }
 };

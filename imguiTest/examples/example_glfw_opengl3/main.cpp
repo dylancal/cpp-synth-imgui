@@ -33,8 +33,8 @@ public:
     // general
     Wavetable_t m_wavetable;
     float m_amplitude{ 0.05f };
-    int left_phase_inc{ 4 };
-    int right_phase_inc{ 4 };
+    float left_phase_inc{ 4 };
+    float right_phase_inc{ 4 };
     //
     // SAW
     // //
@@ -141,8 +141,8 @@ private:
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            *out++ = m_amplitude * (m_wavetable)[left_phase]; // l
-            *out++ = m_amplitude * (m_wavetable)[right_phase]; // r
+            *out++ = m_amplitude * (m_wavetable).interpolate_at(left_phase); // l
+            *out++ = m_amplitude * (m_wavetable).interpolate_at(right_phase); // r
             left_phase += left_phase_inc;
             if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
             right_phase += right_phase_inc; /* higher pitch so we can distinguish left and right. */
@@ -171,8 +171,8 @@ private:
 
 
     PaStream* stream;
-    int left_phase;
-    int right_phase;
+    float left_phase;
+    float right_phase;
     char message[20];
 };
 
@@ -358,8 +358,8 @@ int main(int, char**)
                         ImGui::DragFloat4("ADSR Envelope", ADSR_envelope, 0.01f, 0.0f, 1.0f);
                         ImGui::DragFloat("Output Volume", &synth_test.m_amplitude, 0.0025f, 0.0f, 1.0f);
                         ImGui::DragFloat("Sample Length (s)", &sample_length, 0.05f, 0.0f, 30.0f);
-                        ImGui::DragInt("Left Phase Increment", &synth_test.left_phase_inc, 1, 1, 20);
-                        ImGui::DragInt("Right Phase Increment", &synth_test.right_phase_inc, 1, 1, 20);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_inc, 0.005f, 1, 20);
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_inc, 0.005f, 1, 20);
                     }
 
                     

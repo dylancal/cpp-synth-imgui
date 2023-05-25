@@ -8,11 +8,17 @@
       <UniqueIdentifier>{f18ab499-84e1-499f-8eff-9754361e0e52}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="main">
+      <UniqueIdentifier>{7f759cc8-ec80-4feb-aa8c-f5d4846468b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="main\include">
+      <UniqueIdentifier>{18244e51-5b72-438f-87ef-b15af2e45dcb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="main\sources">
+      <UniqueIdentifier>{eab583cc-37a0-4bd4-87e4-d02a08f5802f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>sources</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\imgui.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
@@ -34,6 +40,9 @@
     <ClCompile Include="..\..\backends\imgui_impl_opengl3.cpp">
       <Filter>sources</Filter>
     </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h">
@@ -53,6 +62,9 @@
     </ClInclude>
     <ClInclude Include="..\..\backends\imgui_impl_opengl3_loader.h">
       <Filter>sources</Filter>
+    </ClInclude>
+    <ClInclude Include="wavetable.h">
+      <Filter>main\include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

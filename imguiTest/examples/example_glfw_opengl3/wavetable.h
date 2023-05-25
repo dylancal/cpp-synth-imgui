@@ -28,9 +28,13 @@ struct SawWave_t : public Wavetable_t
 {
     SawWave_t()
     {
-        for (int i = 0; i < TABLE_SIZE; i++)
+        for (int i = 0; i < TABLE_SIZE / 2; i++)
         {
-            table[i] = (float)i / TABLE_SIZE - 0.5f;
+            table[i] = 2 * (float)(i + TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
+        }
+        for (int i = TABLE_SIZE / 2; i < TABLE_SIZE; i++)
+        {
+            table[i] = 2 * (float)(i - TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
         }
     }
 

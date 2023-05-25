@@ -36,7 +36,7 @@ public:
     //
     // general
     Wavetable_t* m_wavetable;
-    float m_amplitude{ 0.1f };
+    float m_amplitude{ 0.05f };
     //
     // SAW
     // //
@@ -298,14 +298,14 @@ int main(int, char**)
                 ImGui::NewFrame();
 
                 if (show_wavetable_window) {
-                    ImGui::Begin("Wavetable Viewer", &show_intro_window);
+                    ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
                     ImGui::PlotLines("Duty Cycle Visualisation", synth_test.m_wavetable->table, 2048, 0, NULL, -1.0f, 1.0f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
 
                 if (show_intro_window)
                 {
-                    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_intro_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_intro_window, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
                     ImGui::Text("This program provides some simple manipulation of primitive waveforms."
                         "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
 
@@ -365,19 +365,28 @@ int main(int, char**)
 
                     
 
-                    if (ImGui::BeginMainMenuBar())
-                    {
-                        if (ImGui::BeginMenu("File"))
-                        {
-                            if (ImGui::MenuItem("Quit", "Alt+F4")) { glfwSetWindowShouldClose(window, 1); }
-                            if (ImGui::MenuItem("Save Config", "CTRL+S")) {}
-                            if (ImGui::MenuItem("Open Config", "CTRL+O")) {}
-                            ImGui::EndMenu();
-                        }
-                        ImGui::EndMainMenuBar();
-                    }
+                    
 
                     ImGui::End();
+                }
+                if (ImGui::BeginMainMenuBar())
+                {
+                    if (ImGui::BeginMenu("File"))
+                    {
+                        if (ImGui::MenuItem("Quit", "Alt+F4")) { glfwSetWindowShouldClose(window, 1); }
+                        if (ImGui::MenuItem("Save Config", "CTRL+S")) {}
+                        if (ImGui::MenuItem("Open Config", "CTRL+O")) {}
+                        ImGui::EndMenu();
+                    }
+                    if (ImGui::BeginMenu("Windows"))
+                    {
+                        if (ImGui::MenuItem("Welcome")) { show_intro_window = true; }
+                        if (ImGui::MenuItem("Wavetable Viewer", "CTRL+W")) { show_wavetable_window = true; }
+                        if (ImGui::MenuItem("Program Editor", "CTRL+E")) { show_synth_settings = true; }
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::EndMainMenuBar();
                 }
 
                 // Rendering

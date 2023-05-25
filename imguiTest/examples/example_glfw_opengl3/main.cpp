@@ -23,20 +23,18 @@
 #include <iostream>
 
 #define NUM_SECONDS   (5)
-#define SAMPLE_RATE   (44100)
+#define SAMPLE_RATE   (48000)
 #define FRAMES_PER_BUFFER  (64)
-
-SinWave_t sin_wave;
-SawWave_t saw_wave;
-SqrWave_t sqr_wave(0.2f);
 
 class Synth
 {
 public:
     //
     // general
-    Wavetable_t* m_wavetable;
+    Wavetable_t m_wavetable;
     float m_amplitude{ 0.05f };
+    int left_phase_inc{ 4 };
+    int right_phase_inc{ 4 };
     //
     // SAW
     // //
@@ -46,10 +44,10 @@ public:
     //
     float m_pulseWidth{ 0.5f };
 public:
-    Synth(Wavetable_t * def) : stream(0), left_phase(0), right_phase(0) { m_wavetable = def;  sprintf_s(message, "No Message"); }
+    Synth() : stream(0), left_phase(0), right_phase(0) { gen_saw_wave(m_wavetable);  sprintf_s(message, "No Message"); }
 
     void generate_new_sqr() {
-        m_wavetable -> generate(m_pulseWidth);
+        gen_sqr_wave(m_wavetable, m_pulseWidth);
     }
 
     bool open(PaDeviceIndex index) {
@@ -128,10 +126,6 @@ public:
 
         return (err == paNoError);
     }
-    void set_wavetable(Wavetable_t * def)
-    {
-        m_wavetable = def;
-    }
 
 
 private:
@@ -147,11 +141,11 @@ private:
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            *out++ = m_amplitude * (*m_wavetable)[left_phase]; // l
-            *out++ = m_amplitude * (*m_wavetable)[right_phase]; // r
-            left_phase += 4;
+            *out++ = m_amplitude * (m_wavetable)[left_phase]; // l
+            *out++ = m_amplitude * (m_wavetable)[right_phase]; // r
+            left_phase += left_phase_inc;
             if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
-            right_phase += 4; /* higher pitch so we can distinguish left and right. */
+            right_phase += right_phase_inc; /* higher pitch so we can distinguish left and right. */
             if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
         }
 
@@ -211,6 +205,12 @@ static void glfw_error_callback(int error, const char* description)
 // Main code
 int main(int, char**)
 {
+    Wavetable_t saw_wave;
+    Wavetable_t sqr_wave;
+
+    gen_saw_wave(saw_wave);
+    gen_sqr_wave(sqr_wave, 0.4f);
+
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;
@@ -226,7 +226,7 @@ int main(int, char**)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
-    Synth synth_test(&saw_wave);
+    Synth synth_test;
     ScopedPaHandler paInit;
 
     if (paInit.result() != paNoError) {
@@ -283,7 +283,7 @@ int main(int, char**)
             if (no_bring_to_front)  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
             if (unsaved_document)   window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
-            const char* waveforms[] = { "SAW", "SIN", "SQR" };
+            const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw"};
             float ADSR_envelope[4] = { 0.0f, 0.0f, 1.0f, 0.5f };
             float sample_length = 1.0f;
             int current_waveform = 0;
@@ -299,7 +299,7 @@ int main(int, char**)
 
                 if (show_wavetable_window) {
                     ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
-                    ImGui::PlotLines("Duty Cycle Visualisation", synth_test.m_wavetable->table, 2048, 0, NULL, -1.0f, 1.0f, ImVec2(100.0f, 100.0f));
+                    ImGui::PlotLines("Wavetable Visualisation", synth_test.m_wavetable.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
 
@@ -321,46 +321,45 @@ int main(int, char**)
                         "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
 
                     ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("combo", &current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+                    ImGui::Combo("Waveform", &current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
 
                     switch (current_waveform) {
                     case 0:
-                        synth_test.set_wavetable(&saw_wave);
-                        if (ImGui::CollapsingHeader("SAW Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        gen_saw_wave(synth_test.m_wavetable);
+                        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
                         }
                         break;
                     case 1:
-                        synth_test.set_wavetable(&sin_wave);
-                        if (ImGui::CollapsingHeader("SIN Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        gen_sin_wave(synth_test.m_wavetable);
+                        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                         }
                         break;
                     case 2:
-                        synth_test.set_wavetable(&sqr_wave);
-                        if (ImGui::CollapsingHeader("SQR Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        gen_sqr_wave(synth_test.m_wavetable, synth_test.m_pulseWidth);
+                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidth, 0.0025f, 0.0f, 1.0f);
-                            /*float sq[100]{};
-                            sq[0] = 0.0f;
-                            sq[99] = 0.0f;
-                            for (size_t t = 1; t <= 98; ++t) {
-                                sq[t] = (t <= (int)100 * synth_test.m_pulseWidth) ? 1.0f : -1.0f;
-                            }
-                            ImGui::PlotLines("Duty Cycle Visualisation", sq, IM_ARRAYSIZE(sq), 0, NULL, -1.0f, 1.0f, ImVec2(100.0f, 100.0f));*/
-                            if (ImGui::Button("Generate New Wavetable")) {
-                                synth_test.generate_new_sqr();
-                            }
+                        }
+                        break;
+
+                    case 3:
+                        gen_ssaw_wave(synth_test.m_wavetable);
+                        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
                         }
                         break;
                     }
 
-                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_None))
+                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
                         ImGui::DragFloat4("ADSR Envelope", ADSR_envelope, 0.01f, 0.0f, 1.0f);
                         ImGui::DragFloat("Output Volume", &synth_test.m_amplitude, 0.0025f, 0.0f, 1.0f);
                         ImGui::DragFloat("Sample Length (s)", &sample_length, 0.05f, 0.0f, 30.0f);
+                        ImGui::DragInt("Left Phase Increment", &synth_test.left_phase_inc, 1, 1, 20);
+                        ImGui::DragInt("Right Phase Increment", &synth_test.right_phase_inc, 1, 1, 20);
                     }
 
                     

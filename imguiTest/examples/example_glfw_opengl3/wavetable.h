@@ -1,52 +1,61 @@
 #pragma once
 #include <cmath>
+#include <cstddef>
+#include <iostream>
 #define TABLE_SIZE   (2048)
 #ifndef M_PI
 #define M_PI  (3.14159265)
 #endif
+
 struct Wavetable_t
 {
     float table[TABLE_SIZE]{ 0 };
     float& operator[](int i) { return table[i]; }
-    virtual void generate(float pw) {};
+    float interpolate_at(float idx) {
+        /*float wl, fl;
+        fl = std::modf(idx, &wl);
+        wl = (int)wl;
+
+        std::cout << "\nIDX: " << idx << "\nWL: " << wl << "\nFL: " << fl << "\nVAL(WL): " << table[(int)wl] << "\nVAL(WL+!): " << table[(int)wl + 1] << "\nINT: " << table[(int)wl] + fl * (table[(int)wl] + table[(int)wl + 1]);
+        return (table[(int)wl] + fl * (table[(int)wl + 1]- table[(int)wl]))/2;*/
+        float wl, fl;
+        fl = std::modf(idx, &wl);
+        wl = (int)wl;
+        return std::lerp(table[(int)wl], table[(int)wl + 1], fl);
+    }
 };
 
-struct SinWave_t : public Wavetable_t
-{
-    SinWave_t()
+void gen_sin_wave(Wavetable_t& table) {
+    for (int i = 0; i < TABLE_SIZE; i++)
     {
-        for (int i = 0; i < TABLE_SIZE; i++)
-        {
-            table[i] = (float)std::sin((i / (double)TABLE_SIZE) * M_PI * 2.);
-        }
+        table[i] = (float)std::sin((i / (double)TABLE_SIZE) * M_PI * 2.);
     }
+}
 
-    void generate(float pw) override {}
-};
-
-struct SawWave_t : public Wavetable_t
-{
-    SawWave_t()
+void gen_saw_wave(Wavetable_t& table) {
+    //for (int i = 0; i < TABLE_SIZE / 2; i++)
+    //{
+    //    table[i] = 2 * (float)(i + TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
+    //}
+    //for (int i = TABLE_SIZE / 2; i < TABLE_SIZE; i++)
+    //{
+    //    table[i] = 2 * (float)(i - TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
+    //}
+    for (int i = 0; i < TABLE_SIZE; i++)
     {
-        for (int i = 0; i < TABLE_SIZE / 2; i++)
-        {
-            table[i] = 2 * (float)(i + TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
-        }
-        for (int i = TABLE_SIZE / 2; i < TABLE_SIZE; i++)
-        {
-            table[i] = 2 * (float)(i - TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
-        }
+        table[i] = 2 * ((i + TABLE_SIZE/2) % TABLE_SIZE) / (float)TABLE_SIZE - 1.0f;
     }
+}
 
-    void generate(float pw) override {}
-};
+void gen_sqr_wave(Wavetable_t& table, float pw) {
+    for (int i = 0; i < (int)(TABLE_SIZE * pw); i++) { table[i] = 1.0f; }
+    for (int i = (int)(TABLE_SIZE * pw); i < TABLE_SIZE; i++) { table[i] = -1.0f; }
+}
 
-struct SqrWave_t : public Wavetable_t
-{
-    SqrWave_t(float pw) { generate(pw); }
-
-    void generate(float pw) override {
-        for (int i = 0; i < (int)(TABLE_SIZE * pw); i++) { table[i] = 1.0f; }
-        for (int i = (int)(TABLE_SIZE * pw); i < TABLE_SIZE; i++) { table[i] = -1.0f; }
+void gen_ssaw_wave(Wavetable_t& table) {
+    Wavetable_t tmp;
+    gen_saw_wave(tmp);
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        table[i] = tmp.interpolate_at(std::fmod(2*i, TABLE_SIZE));
     }
-};
+}

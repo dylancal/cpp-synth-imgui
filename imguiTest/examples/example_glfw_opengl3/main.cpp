@@ -21,6 +21,8 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 constexpr auto NUM_SECONDS = (5);
 constexpr auto SAMPLE_RATE = (48000);
@@ -36,6 +38,7 @@ public:
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
+    Wavetable_t* oscillators[2] { & m_oscA, & m_oscB };
 
 public:
     Synth() {
@@ -135,21 +138,38 @@ private:
         (void)statusFlags;
         (void)inputBuffer;
 
-        for (unsigned long i = 0; i < framesPerBuffer; i++)
-        {
-            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
-                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase);
-            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
-                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase);
+        for (unsigned long i = 0; i < framesPerBuffer; i++) {
+            //auto updatePhases = [&out](Wavetable_t* wt) {
+            //    *out++ = wt->ps.amp * wt->interpolate_at(wt->ps.left_phase);
+            //    *out++ = wt->ps.amp * wt->interpolate_at(wt->ps.right_phase);
+            //    wt->ps.left_phase += wt->ps.left_phase_inc;
+            //    if (wt->ps.left_phase >= TABLE_SIZE) wt->ps.left_phase -= TABLE_SIZE;
+            //    wt->ps.right_phase += wt->ps.right_phase_inc;
+            //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
+            //};
+            //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
+            //*out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
+            //            m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase);
+            //*out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
+            //            m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase);
+            //m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
+            //m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
+            //if (m_oscA.ps.left_phase >= TABLE_SIZE) m_oscA.ps.left_phase -= TABLE_SIZE;
+            //if (m_oscB.ps.left_phase >= TABLE_SIZE) m_oscB.ps.left_phase -= TABLE_SIZE;
+            //m_oscA.ps.right_phase += m_oscA.ps.right_phase_inc;
+            //m_oscB.ps.right_phase += m_oscB.ps.right_phase_inc;
+            //if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
+            //if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
 
-            m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
-            m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
-            if (m_oscA.ps.left_phase >= TABLE_SIZE) m_oscA.ps.left_phase -= TABLE_SIZE;
-            if (m_oscB.ps.left_phase >= TABLE_SIZE) m_oscB.ps.left_phase -= TABLE_SIZE;
-            m_oscA.ps.right_phase += m_oscA.ps.right_phase_inc;
-            m_oscB.ps.right_phase += m_oscB.ps.right_phase_inc;
-            if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
-            if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
+            for (size_t i = 0; i < 2; ++i) {
+                *out++ = oscillators[i]->ps.amp * oscillators[i]->interpolate_at(oscillators[i]->ps.left_phase);
+                *out++ = oscillators[i]->ps.amp * oscillators[i]->interpolate_at(oscillators[i]->ps.right_phase);
+                oscillators[i]->ps.left_phase += oscillators[i]->ps.left_phase_inc;
+                if (oscillators[i]->ps.left_phase >= TABLE_SIZE) oscillators[i]->ps.left_phase -= TABLE_SIZE;
+                oscillators[i]->ps.right_phase += oscillators[i]->ps.right_phase_inc;
+                if (oscillators[i]->ps.right_phase >= TABLE_SIZE) oscillators[i]->ps.right_phase -= TABLE_SIZE;
+            }
+
         }
         return paContinue;
 

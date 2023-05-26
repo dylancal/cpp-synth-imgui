@@ -16,6 +16,7 @@ struct OscSettings {
     float right_phase_inc{ 1 };
     int current_note_left{ 1 };
     int current_note_right{ 1 };
+    int current_waveform{ 0 };
     // SQR
     float pulse_width{ 0.5f };
 };

@@ -23,6 +23,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 constexpr auto NUM_SECONDS = (5);
 constexpr auto SAMPLE_RATE = (48000);
@@ -436,7 +437,51 @@ int main(int, char**)
                     ImGui::End();
                 }
 
-                if (show_oscA)
+                const char* oscs[3] = { "A", "B", "C" };
+                std::size_t counter = 0;
+                for (auto& osc : synth_test.oscillators) {
+                    ImGui::Begin((std::string("Oscillator ") + std::string(oscs[counter])).c_str(), &show_oscA, window_flags);
+                    ++counter;
+                    ImGui::SeparatorText("Waveform Selector");
+                    ImGui::Combo("Waveform", &osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+
+                    switch (osc->ps.current_waveform) {
+                    case 0:
+                        gen_saw_wave(*osc);
+                        break;
+                    case 1:
+                        gen_sin_wave(*osc);
+                        break;
+                    case 2:
+                        gen_sqr_wave(*osc, osc->ps.pulse_width);
+                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            ImGui::DragFloat("Pulse Width", &osc->ps.pulse_width, 0.0025f, 0.0f, 1.0f);
+                        }
+                        break;
+
+                    case 3:
+                        gen_sin_saw_wave(*osc);
+                        break;
+                    }
+
+                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                    {
+                        if (ImGui::Combo("L-Note", &osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                            osc->ps.left_phase_inc = freqs[osc->ps.current_note_left];
+                        }
+                        if (ImGui::Combo("R-Note", &osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                            osc->ps.right_phase_inc = freqs[osc->ps.current_note_right];
+                        }
+                        ImGui::DragFloat("Output Volume", &osc->ps.amp, 0.0025f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Left Phase Increment", &osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
+                        ImGui::DragFloat("Right Phase Increment", &osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
+                    }
+                    ImGui::PlotLines("Wavetable", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    ImGui::End();
+                }
+
+                /*if (show_oscA)
                 {
                     ImGui::Begin("Oscillator A", &show_oscA, window_flags); 
                     ImGui::SeparatorText("Waveform Selector");
@@ -590,7 +635,7 @@ int main(int, char**)
                     }
                     ImGui::PlotLines("Wavetable", synth_test.m_oscC.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
-                }
+                }*/
 
                 if (show_osc_mixer) {
                     ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);

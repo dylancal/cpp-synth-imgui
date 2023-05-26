@@ -28,7 +28,7 @@ void gen_sin_wave(Wavetable_t& table) {
 void gen_saw_wave(Wavetable_t& table) {
     for (int i = 0; i < TABLE_SIZE; i++)
     {
-        table[i] = 2 * ((i + TABLE_SIZE) % TABLE_SIZE) / (float)TABLE_SIZE - 1.0f;
+        table[i] = 2 * ((i + TABLE_SIZE / 2) % TABLE_SIZE) / (float)TABLE_SIZE - 1.0f;
     }
 }
 

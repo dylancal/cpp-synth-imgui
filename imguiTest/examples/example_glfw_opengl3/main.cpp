@@ -30,8 +30,10 @@ class Synth
 {
 private:
     PaStream* stream{ 0 };
-    float left_phase{ 0 };
-    float right_phase{ 0 };
+    float left_phaseA{ 0 };
+    float right_phaseA{ 0 };
+    float left_phaseB{ 0 };
+    float right_phaseB{ 0 };
     char message[20];
 public:
     // GENERAL
@@ -41,12 +43,17 @@ public:
     float m_ampA{ 0.05f };
     float m_ampB{ 0.05f };
     float m_ampC{ 0.05f };
-    float left_phase_inc{ 4 };
-    float right_phase_inc{ 4 };
+    float left_phase_incA{ 4 };
+    float right_phase_incA{ 4 };
+    float left_phase_incB{ 4 };
+    float right_phase_incB{ 4 };
+    float left_phase_incC{ 4 };
+    float right_phase_incC{ 4 };
     // SAW
     // SIN
     // SQR
-    float m_pulseWidth{ 0.5f };
+    float m_pulseWidthA{ 0.5f };
+    float m_pulseWidthB{ 0.5f };
 public:
     Synth() {
         gen_saw_wave(m_oscA);
@@ -57,11 +64,11 @@ public:
     }
 
     void generate_new_sqr() {
-        gen_sqr_wave(m_oscA, m_pulseWidth);
+        gen_sqr_wave(m_oscA, m_pulseWidthA);
     }
 
     void generate_new_sqr(Wavetable_t &wavetable) {
-        gen_sqr_wave(wavetable, m_pulseWidth);
+        gen_sqr_wave(wavetable, m_pulseWidthA);
     }
 
     bool open(PaDeviceIndex index) {
@@ -151,12 +158,18 @@ private:
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            *out++ = m_ampA * (m_oscA).interpolate_at(left_phase);
-            *out++ = m_ampA * (m_oscA).interpolate_at(right_phase);
-            left_phase += left_phase_inc;
-            if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
-            right_phase += right_phase_inc;
-            if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
+            *out++ = m_ampA * (m_oscA).interpolate_at(left_phaseA) +
+                        m_ampB * (m_oscB).interpolate_at(left_phaseB);
+            *out++ = m_ampA * (m_oscA).interpolate_at(right_phaseA) +
+                        m_ampB * (m_oscB).interpolate_at(right_phaseB);
+            left_phaseA += left_phase_incA;
+            left_phaseB += left_phase_incB;
+            if (left_phaseA >= TABLE_SIZE) left_phaseA -= TABLE_SIZE;
+            if (left_phaseB >= TABLE_SIZE) left_phaseB -= TABLE_SIZE;
+            right_phaseA += right_phase_incA;
+            right_phaseB += right_phase_incB;
+            if (right_phaseA >= TABLE_SIZE) right_phaseA -= TABLE_SIZE;
+            if (right_phaseB >= TABLE_SIZE) right_phaseB -= TABLE_SIZE;
         }
         return paContinue;
 
@@ -259,6 +272,10 @@ int main(int, char**)
             bool show_intro_window = true;
             bool show_wavetable_window = true;
             bool show_synth_settings = true;
+            bool show_oscA = true;
+            bool show_oscB = true;
+            bool show_oscC = true;
+            bool show_osc_mixer = true;
             ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
             static bool no_titlebar = false;
@@ -288,7 +305,9 @@ int main(int, char**)
             const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw"};
             float ADSR_envelope[4] = { 0.0f, 0.0f, 1.0f, 0.5f };
             float sample_length = 1.0f;
-            int current_waveform = 0;
+            int current_waveformA = 0;
+            int current_waveformB = 0;
+            int current_waveformC = 0;
             int saw_supersaw_amt = 1;
 
             // Main loop
@@ -316,24 +335,62 @@ int main(int, char**)
                     ImGui::End();
                 }
 
-                if (show_synth_settings)
+
+
+                //if (show_synth_settings)
+                //{
+                //    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_synth_settings, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                //    ImGui::Text("This program provides some simple manipulation of primitive waveforms."
+                //        "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
+
+                //    ImGui::SeparatorText("Waveform Selector");
+                //    ImGui::Combo("Waveform", &current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+
+                //    switch (current_waveform) {
+                //    case 0:
+                //        gen_saw_wave(synth_test.m_oscA);
+                //        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                //        {
+                //            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
+                //            ImGui::Button("Test");
+                //            ImGui::SameLine();
+                //            ImGui::Button("Test2");
+                //        }
+                //        break;
+                //    case 1:
+                //        gen_sin_wave(synth_test.m_oscA);
+                //        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                //        {
+                //        }
+                //        break;
+                //    case 2:
+                //        gen_sqr_wave(synth_test.m_oscA, synth_test.m_pulseWidth);
+                //        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                //        {
+                //            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidth, 0.0025f, 0.0f, 1.0f);
+                //        }
+                //        break;
+
+                //    case 3:
+                //        gen_sin_saw_wave(synth_test.m_oscA);
+                //        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                //        {
+                //        }
+                //        break;
+                //    }
+
+                if (show_oscA)
                 {
-                    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_synth_settings, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                    ImGui::Text("This program provides some simple manipulation of primitive waveforms."
-                        "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
-
+                    ImGui::Begin("Oscillator A", &show_oscA, window_flags); 
                     ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("Waveform", &current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+                    ImGui::Combo("Waveform", &current_waveformA, waveforms, IM_ARRAYSIZE(waveforms));
 
-                    switch (current_waveform) {
+                    switch (current_waveformA) {
                     case 0:
                         gen_saw_wave(synth_test.m_oscA);
                         if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
-                            ImGui::Button("Test");
-                            ImGui::SameLine();
-                            ImGui::Button("Test2");
                         }
                         break;
                     case 1:
@@ -343,10 +400,10 @@ int main(int, char**)
                         }
                         break;
                     case 2:
-                        gen_sqr_wave(synth_test.m_oscA, synth_test.m_pulseWidth);
+                        gen_sqr_wave(synth_test.m_oscA, synth_test.m_pulseWidthA);
                         if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidth, 0.0025f, 0.0f, 1.0f);
+                            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidthA, 0.0025f, 0.0f, 1.0f);
                         }
                         break;
 
@@ -360,19 +417,60 @@ int main(int, char**)
 
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        ImGui::DragFloat4("ADSR Envelope", ADSR_envelope, 0.01f, 0.0f, 1.0f);
                         ImGui::DragFloat("Output Volume", &synth_test.m_ampA, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Sample Length (s)", &sample_length, 0.05f, 0.0f, 30.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_inc, 0.005f, 1, 20);
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_inc, 0.005f, 1, 20);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_incA, 0.005f, 1, 20);
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_incA, 0.005f, 1, 20);
                     }
-
-                    
-
-                    
-
+                    ImGui::PlotLines("Wavetable", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
+
+                if (show_oscB)
+                {
+                    ImGui::Begin("Oscillator B", &show_oscB, window_flags);
+                    ImGui::SeparatorText("Waveform Selector");
+                    ImGui::Combo("Waveform", &current_waveformB, waveforms, IM_ARRAYSIZE(waveforms));
+
+                    switch (current_waveformB) {
+                    case 0:
+                        gen_saw_wave(synth_test.m_oscB);
+                        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
+                        }
+                        break;
+                    case 1:
+                        gen_sin_wave(synth_test.m_oscB);
+                        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                        }
+                        break;
+                    case 2:
+                        gen_sqr_wave(synth_test.m_oscB, synth_test.m_pulseWidthB);
+                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidthB, 0.0025f, 0.0f, 1.0f);
+                        }
+                        break;
+
+                    case 3:
+                        gen_sin_saw_wave(synth_test.m_oscB);
+                        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                        }
+                        break;
+                    }
+
+                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                    {
+                        ImGui::DragFloat("Output Volume", &synth_test.m_ampB, 0.0025f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_incB, 0.005f, 1, 20);
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_incB, 0.005f, 1, 20);
+                    }
+                    ImGui::PlotLines("Wavetable", synth_test.m_oscB.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    ImGui::End();
+                }
+
                 if (ImGui::BeginMainMenuBar())
                 {
                     if (ImGui::BeginMenu("File"))
@@ -387,6 +485,9 @@ int main(int, char**)
                         if (ImGui::MenuItem("Welcome")) { show_intro_window = true; }
                         if (ImGui::MenuItem("Wavetable Viewer", "CTRL+W")) { show_wavetable_window = true; }
                         if (ImGui::MenuItem("Program Editor", "CTRL+E")) { show_synth_settings = true; }
+                        if (ImGui::MenuItem("Oscillator A")) { show_oscA = true; }
+                        if (ImGui::MenuItem("Oscillator B")) { show_oscB = true; }
+                        if (ImGui::MenuItem("Oscillator C")) { show_oscC = true; }
                         ImGui::EndMenu();
                     }
 

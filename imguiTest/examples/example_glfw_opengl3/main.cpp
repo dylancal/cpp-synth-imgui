@@ -394,7 +394,7 @@ int main(int, char**)
 
             float freqs[72] { };
             for (size_t i = 0; i < 72; ++i) {
-                freqs[i] = std::powf(2, i / 12.0);
+                freqs[i] = std::powf(2, (float) (i / 12.0));
             }
 
             int current_waveformA = 0;
@@ -571,6 +571,10 @@ int main(int, char**)
                     }
                     ImGui::PlotLines("Wavetable", synth_test.m_oscC.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
+                }
+
+                if (show_osc_mixer) {
+
                 }
 
                 if (ImGui::BeginMainMenuBar())

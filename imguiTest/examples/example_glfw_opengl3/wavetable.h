@@ -55,7 +55,7 @@ void gen_ssaw_wave(Wavetable_t& table) {
     Wavetable_t tmp;
     gen_saw_wave(tmp);
     for (int i = 0; i < TABLE_SIZE; i++) {
-        table[i] = tmp.interpolate_at(std::fmod(2*i, TABLE_SIZE));
+        table[i] = tmp.interpolate_at((float)std::fmod(2*i, TABLE_SIZE));
     }
 }
 

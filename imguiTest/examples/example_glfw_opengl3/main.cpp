@@ -305,7 +305,11 @@ int main(int, char**)
 {
     
     Wavetable_t saw_wave;
+    Wavetable_t sin_wave;
+    Wavetable_t sqr_wave;
     gen_saw_wave(saw_wave);
+    gen_sin_wave(sin_wave);
+    gen_sqr_wave(sqr_wave, 0.5);
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -481,24 +485,20 @@ int main(int, char**)
                     ImGui::Checkbox("Animate", &animate);
                     static float rate{ 1.0f };
                     ImGui::DragFloat("Rate", &rate, 0.005f, 0.1, 20, "%f");
-                    //static float values[90] = {};
-                    //static int values_offset = 0;
-                    //static double refresh_time = 0.0;
-                    //if (!animate || refresh_time == 0.0)
-                    //    refresh_time = ImGui::GetTime();
-                    //while (refresh_time < ImGui::GetTime())
-                    //{
-                    //    static float phase = 0.0f;
-                    //    values[values_offset] = std::sin(rate * refresh_time);
-                    //    values_offset = (values_offset + 1) % 90;
-                    //    refresh_time += 1 / 60.0f;
-                    //}
+                    static float values[90] = {};
+                    static int values_offset = 0;
+                    static double refresh_time = 0.0;
+                    static float lfo_out = 0.0f;
+                    if (!animate || refresh_time == 0.0)
+                        refresh_time = ImGui::GetTime();
+                    while (refresh_time < ImGui::GetTime())
+                    {
+                        static float phase = 0.0f;
+                        lfo_out = std::sin(rate * refresh_time);
+                        refresh_time += 1 / 60.0f;
+                    }
 
-                    //// Plots can display overlay texts
-                    //// (in this example, we will display an average value)
-                    //{
-                    //    ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(0, 80.0f));
-                    //}
+                    ImGui::DragFloat("LFO", &lfo_out, 0.005f, -1.0f, 1.0f, "%f");
                     ImGui::ShowDemoWindow();
                     ImGui::End();
                 }

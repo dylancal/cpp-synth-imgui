@@ -30,30 +30,13 @@ class Synth
 {
 private:
     PaStream* stream{ 0 };
-    float left_phaseA{ 0 };
-    float right_phaseA{ 0 };
-    float left_phaseB{ 0 };
-    float right_phaseB{ 0 };
     char message[20];
 public:
     // GENERAL
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
-    float m_ampA{ 0.05f };
-    float m_ampB{ 0.05f };
-    float m_ampC{ 0.05f };
-    float left_phase_incA{ 4 };
-    float right_phase_incA{ 4 };
-    float left_phase_incB{ 4 };
-    float right_phase_incB{ 4 };
-    float left_phase_incC{ 4 };
-    float right_phase_incC{ 4 };
-    // SAW
-    // SIN
-    // SQR
-    float m_pulseWidthA{ 0.5f };
-    float m_pulseWidthB{ 0.5f };
+
 public:
     Synth() {
         gen_saw_wave(m_oscA);
@@ -63,12 +46,8 @@ public:
 
     }
 
-    void generate_new_sqr() {
-        gen_sqr_wave(m_oscA, m_pulseWidthA);
-    }
-
     void generate_new_sqr(Wavetable_t &wavetable) {
-        gen_sqr_wave(wavetable, m_pulseWidthA);
+        gen_sqr_wave(wavetable, wavetable.ps.pulse_width);
     }
 
     bool open(PaDeviceIndex index) {
@@ -158,18 +137,19 @@ private:
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            *out++ = m_ampA * (m_oscA).interpolate_at(left_phaseA) +
-                        m_ampB * (m_oscB).interpolate_at(left_phaseB);
-            *out++ = m_ampA * (m_oscA).interpolate_at(right_phaseA) +
-                        m_ampB * (m_oscB).interpolate_at(right_phaseB);
-            left_phaseA += left_phase_incA;
-            left_phaseB += left_phase_incB;
-            if (left_phaseA >= TABLE_SIZE) left_phaseA -= TABLE_SIZE;
-            if (left_phaseB >= TABLE_SIZE) left_phaseB -= TABLE_SIZE;
-            right_phaseA += right_phase_incA;
-            right_phaseB += right_phase_incB;
-            if (right_phaseA >= TABLE_SIZE) right_phaseA -= TABLE_SIZE;
-            if (right_phaseB >= TABLE_SIZE) right_phaseB -= TABLE_SIZE;
+            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
+                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase);
+            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
+                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase);
+
+            m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
+            m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
+            if (m_oscA.ps.left_phase >= TABLE_SIZE) m_oscA.ps.left_phase -= TABLE_SIZE;
+            if (m_oscB.ps.left_phase >= TABLE_SIZE) m_oscB.ps.left_phase -= TABLE_SIZE;
+            m_oscA.ps.right_phase += m_oscA.ps.right_phase_inc;
+            m_oscB.ps.right_phase += m_oscB.ps.right_phase_inc;
+            if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
+            if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
         }
         return paContinue;
 
@@ -221,10 +201,7 @@ static void glfw_error_callback(int error, const char* description)
 int main(int, char**)
 {
     Wavetable_t saw_wave;
-    Wavetable_t sqr_wave;
-
     gen_saw_wave(saw_wave);
-    gen_sqr_wave(sqr_wave, 0.4f);
 
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -400,10 +377,10 @@ int main(int, char**)
                         }
                         break;
                     case 2:
-                        gen_sqr_wave(synth_test.m_oscA, synth_test.m_pulseWidthA);
+                        gen_sqr_wave(synth_test.m_oscA, synth_test.m_oscA.ps.pulse_width);
                         if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidthA, 0.0025f, 0.0f, 1.0f);
+                            ImGui::DragFloat("Pulse Width", &synth_test.m_oscA.ps.pulse_width, 0.0025f, 0.0f, 1.0f);
                         }
                         break;
 
@@ -417,9 +394,9 @@ int main(int, char**)
 
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        ImGui::DragFloat("Output Volume", &synth_test.m_ampA, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_incA, 0.005f, 1, 20);
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_incA, 0.005f, 1, 20);
+                        ImGui::DragFloat("Output Volume", &synth_test.m_oscA.ps.amp, 0.0025f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscA.ps.left_phase_inc, 0.005f, 1, 20);
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscA.ps.right_phase_inc, 0.005f, 1, 20);
                     }
                     ImGui::PlotLines("Wavetable", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
@@ -446,10 +423,10 @@ int main(int, char**)
                         }
                         break;
                     case 2:
-                        gen_sqr_wave(synth_test.m_oscB, synth_test.m_pulseWidthB);
+                        gen_sqr_wave(synth_test.m_oscB, synth_test.m_oscB.ps.pulse_width);
                         if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidthB, 0.0025f, 0.0f, 1.0f);
+                            ImGui::DragFloat("Pulse Width", &synth_test.m_oscB.ps.pulse_width, 0.0025f, 0.0f, 1.0f);
                         }
                         break;
 
@@ -463,9 +440,9 @@ int main(int, char**)
 
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        ImGui::DragFloat("Output Volume", &synth_test.m_ampB, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_incB, 0.005f, 1, 20);
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_incB, 0.005f, 1, 20);
+                        ImGui::DragFloat("Output Volume", &synth_test.m_oscB.ps.amp, 0.0025f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscB.ps.left_phase_inc, 0.005f, 1, 20);
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscB.ps.right_phase_inc, 0.005f, 1, 20);
                     }
                     ImGui::PlotLines("Wavetable", synth_test.m_oscB.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();

@@ -7,8 +7,20 @@
 #define M_PI  (3.14159265)
 #endif
 
+struct OscSettings {
+    // GENERAL
+    float amp{ 0.05f };
+    float left_phase{ 0 };
+    float right_phase{ 0 };
+    float left_phase_inc{ 4 };
+    float right_phase_inc{ 4 };
+    // SQR
+    float pulse_width{ 0.5f };
+};
+
 struct Wavetable_t
 {
+    OscSettings ps;
     float table[TABLE_SIZE]{ 0 };
     float& operator[](int i) { return table[i]; }
     float interpolate_at(float idx) {

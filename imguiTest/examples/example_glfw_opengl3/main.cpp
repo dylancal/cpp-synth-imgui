@@ -130,7 +130,8 @@ public:
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
-    Wavetable_t* oscillators[3] { & m_oscA, & m_oscB, & m_oscC };
+    std::vector<Wavetable_t*> oscillators { & m_oscA, & m_oscB, & m_oscC };
+    float amplitude{ 0.1f };
 
 public:
     Synth() {
@@ -235,12 +236,12 @@ private:
             //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
             //};
             //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
-            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
-                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase) +
-                        m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.left_phase);
-            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
-                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase) +
-                        m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.right_phase);
+            *out++ =    amplitude * (m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
+                                m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase) +
+                                m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.left_phase));
+            *out++ =    amplitude * (m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
+                                m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase) +
+                                m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.right_phase));
             m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
             m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
             m_oscC.ps.left_phase += m_oscC.ps.left_phase_inc;
@@ -413,7 +414,25 @@ int main(int, char**)
 
                 if (show_wavetable_window) {
                     ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
-                    ImGui::PlotLines("Wavetable Visualisation", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    float sum_table_L[TABLE_SIZE]{};
+                    for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
+                        float tmp = 0;
+                        for (const auto& osc : synth_test.oscillators) {
+                            tmp += osc->interpolate_at(i*osc->ps.left_phase_inc)*osc->ps.amp;
+                        }
+                        sum_table_L[i] = tmp;
+                    }
+                    float sum_table_R[TABLE_SIZE]{};
+                    for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
+                        float tmp = 0;
+                        for (const auto& osc : synth_test.oscillators) {
+                            tmp += osc->interpolate_at(i * osc->ps.right_phase_inc) * osc->ps.amp;
+                        }
+                        sum_table_R[i] = tmp;
+                    }
+                    
+                    ImGui::PlotLines("Wavetable Visualisation, L", sum_table_L, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    ImGui::PlotLines("Wavetable Visualisation, R", sum_table_R, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
 
@@ -574,7 +593,19 @@ int main(int, char**)
                 }
 
                 if (show_osc_mixer) {
-
+                    ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
+                    const float spacing = 4;
+                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
+                    ImGui::VSliderFloat("A", ImVec2(20, 160), &synth_test.m_oscA.ps.amp, 0.0f, 0.5f, "");
+                    ImGui::SameLine();
+                    ImGui::VSliderFloat("B", ImVec2(20, 160), &synth_test.m_oscB.ps.amp, 0.0f, 0.5f, "");
+                    ImGui::SameLine();
+                    ImGui::VSliderFloat("C", ImVec2(20, 160), &synth_test.m_oscC.ps.amp, 0.0f, 0.5f, "");
+                    ImGui::SameLine();
+                    ImGui::SameLine();
+                    ImGui::VSliderFloat("OUT", ImVec2(20, 160), &synth_test.amplitude, 0.0f, 0.5f, "");
+                    ImGui::PopStyleVar();
+                    ImGui::End();
                 }
 
                 if (ImGui::BeginMainMenuBar())
@@ -594,6 +625,7 @@ int main(int, char**)
                         if (ImGui::MenuItem("Oscillator A")) { show_oscA = true; }
                         if (ImGui::MenuItem("Oscillator B")) { show_oscB = true; }
                         if (ImGui::MenuItem("Oscillator C")) { show_oscC = true; }
+                        if (ImGui::MenuItem("Volume Mixer")) { show_osc_mixer = true; }
                         ImGui::EndMenu();
                     }
 

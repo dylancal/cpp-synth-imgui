@@ -9,7 +9,7 @@ constexpr auto TABLE_SIZE = (872);
 
 struct OscSettings {
     // GENERAL
-    float amp{ 0.05f };
+    float amp{ 0.33f };
     float left_phase{ 0 };
     float right_phase{ 0 };
     float left_phase_inc{ 1 };
@@ -28,7 +28,7 @@ struct Wavetable_t
     float interpolate_at(float idx) {
         float wl, fl;
         fl = std::modf(idx, &wl);
-        return std::lerp(table[(int)wl], table[(int)wl + 1], fl);
+        return std::lerp(table[(int)wl % TABLE_SIZE], table[(int)(wl + 1) % TABLE_SIZE], fl);
     }
 };
 

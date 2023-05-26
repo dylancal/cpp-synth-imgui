@@ -28,24 +28,40 @@ constexpr auto FRAMES_PER_BUFFER = (64);
 
 class Synth
 {
+private:
+    PaStream* stream{ 0 };
+    float left_phase{ 0 };
+    float right_phase{ 0 };
+    char message[20];
 public:
     // GENERAL
-    Wavetable_t m_wavetable;
-    float m_amplitude{ 0.05f };
+    Wavetable_t m_oscA;
+    Wavetable_t m_oscB;
+    Wavetable_t m_oscC;
+    float m_ampA{ 0.05f };
+    float m_ampB{ 0.05f };
+    float m_ampC{ 0.05f };
     float left_phase_inc{ 4 };
     float right_phase_inc{ 4 };
     // SAW
-    // //
     // SIN
-    // //
     // SQR
-    //
     float m_pulseWidth{ 0.5f };
 public:
-    Synth() : stream(0), left_phase(0), right_phase(0) { gen_saw_wave(m_wavetable);  sprintf_s(message, "No Message"); }
+    Synth() {
+        gen_saw_wave(m_oscA);
+        gen_saw_wave(m_oscB);
+        gen_saw_wave(m_oscC);
+        sprintf_s(message, "No Message");
+
+    }
 
     void generate_new_sqr() {
-        gen_sqr_wave(m_wavetable, m_pulseWidth);
+        gen_sqr_wave(m_oscA, m_pulseWidth);
+    }
+
+    void generate_new_sqr(Wavetable_t &wavetable) {
+        gen_sqr_wave(wavetable, m_pulseWidth);
     }
 
     bool open(PaDeviceIndex index) {
@@ -96,8 +112,7 @@ public:
 
         return true;
     }
-    bool close()
-    {
+    bool close() {
         if (stream == 0)
             return false;
 
@@ -106,8 +121,7 @@ public:
 
         return (err == paNoError);
     }
-    bool start()
-    {
+    bool start() {
         if (stream == 0)
             return false;
 
@@ -115,8 +129,7 @@ public:
 
         return (err == paNoError);
     }
-    bool stop()
-    {
+    bool stop() {
         if (stream == 0)
             return false;
 
@@ -130,8 +143,7 @@ private:
     int paCallbackMethod(const void* inputBuffer, void* outputBuffer,
         unsigned long framesPerBuffer,
         const PaStreamCallbackTimeInfo * timeInfo,
-        PaStreamCallbackFlags statusFlags)
-    {
+        PaStreamCallbackFlags statusFlags) {
         float* out = (float*)outputBuffer;
         (void)timeInfo;
         (void)statusFlags;
@@ -139,8 +151,8 @@ private:
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            *out++ = m_amplitude * (m_wavetable).interpolate_at(left_phase);
-            *out++ = m_amplitude * (m_wavetable).interpolate_at(right_phase);
+            *out++ = m_ampA * (m_oscA).interpolate_at(left_phase);
+            *out++ = m_ampA * (m_oscA).interpolate_at(right_phase);
             left_phase += left_phase_inc;
             if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
             right_phase += right_phase_inc;
@@ -157,7 +169,6 @@ private:
             statusFlags);
     }
 
-
     void paStreamFinishedMethod() {
         printf("Stream Completed: %s\n", message);
     }
@@ -165,12 +176,6 @@ private:
     static void paStreamFinished(void* userData) {
         return ((Synth*)userData)->paStreamFinishedMethod();
     }
-
-
-    PaStream* stream;
-    float left_phase;
-    float right_phase;
-    char message[20];
 };
 
 class ScopedPaHandler
@@ -296,7 +301,7 @@ int main(int, char**)
 
                 if (show_wavetable_window) {
                     ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
-                    ImGui::PlotLines("Wavetable Visualisation", synth_test.m_wavetable.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    ImGui::PlotLines("Wavetable Visualisation", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
 
@@ -322,7 +327,7 @@ int main(int, char**)
 
                     switch (current_waveform) {
                     case 0:
-                        gen_saw_wave(synth_test.m_wavetable);
+                        gen_saw_wave(synth_test.m_oscA);
                         if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
@@ -332,13 +337,13 @@ int main(int, char**)
                         }
                         break;
                     case 1:
-                        gen_sin_wave(synth_test.m_wavetable);
+                        gen_sin_wave(synth_test.m_oscA);
                         if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                         }
                         break;
                     case 2:
-                        gen_sqr_wave(synth_test.m_wavetable, synth_test.m_pulseWidth);
+                        gen_sqr_wave(synth_test.m_oscA, synth_test.m_pulseWidth);
                         if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidth, 0.0025f, 0.0f, 1.0f);
@@ -346,7 +351,7 @@ int main(int, char**)
                         break;
 
                     case 3:
-                        gen_sin_saw_wave(synth_test.m_wavetable);
+                        gen_sin_saw_wave(synth_test.m_oscA);
                         if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                         }
@@ -356,7 +361,7 @@ int main(int, char**)
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
                         ImGui::DragFloat4("ADSR Envelope", ADSR_envelope, 0.01f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Output Volume", &synth_test.m_amplitude, 0.0025f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Output Volume", &synth_test.m_ampA, 0.0025f, 0.0f, 1.0f);
                         ImGui::DragFloat("Sample Length (s)", &sample_length, 0.05f, 0.0f, 30.0f);
                         ImGui::DragFloat("Left Phase Increment", &synth_test.left_phase_inc, 0.005f, 1, 20);
                         ImGui::DragFloat("Right Phase Increment", &synth_test.right_phase_inc, 0.005f, 1, 20);

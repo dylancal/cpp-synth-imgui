@@ -116,6 +116,7 @@ void SetupImGuiStyle()
     style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.699999988079071f);
     style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.3499999940395355f);
+    //style.Alpha = 0.5f;
     style.ScaleAllSizes(3);
 }
 
@@ -136,8 +137,7 @@ public:
         gen_saw_wave(m_oscA);
         gen_saw_wave(m_oscB);
         gen_saw_wave(m_oscC);
-        sprintf_s(message, "No Message");
-
+        sprintf_s(message, "Synth End ");
     }
 
 
@@ -253,20 +253,8 @@ private:
             if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
             if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
             if (m_oscC.ps.right_phase >= TABLE_SIZE) m_oscC.ps.right_phase -= TABLE_SIZE;
-
-            //for (size_t i = 0; i < 2; ++i) {
-            //    auto idx_ps = oscillators[i]->ps;
-            //    *out++ = idx_ps.amp * oscillators[i]->interpolate_at(idx_ps.left_phase);
-            //    *out++ = idx_ps.amp * oscillators[i]->interpolate_at(idx_ps.right_phase);
-            //    idx_ps.left_phase += idx_ps.left_phase_inc;
-            //    if (idx_ps.left_phase >= TABLE_SIZE) idx_ps.left_phase -= TABLE_SIZE;
-            //    idx_ps.right_phase += idx_ps.right_phase_inc;
-            //    if (idx_ps.right_phase >= TABLE_SIZE) idx_ps.right_phase -= TABLE_SIZE;
-            //}
-
         }
         return paContinue;
-
     }
 
     static int paCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo * timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
@@ -311,7 +299,6 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-// Main code
 int main(int, char**)
 {
     
@@ -325,6 +312,7 @@ int main(int, char**)
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
 
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
     if (window == nullptr)
@@ -370,7 +358,7 @@ int main(int, char**)
             bool show_oscB = true;
             bool show_oscC = true;
             bool show_osc_mixer = true;
-            ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+            ImVec4 clear_color = ImVec4(0.20f, 0.09f, 0.14f, 0.95f);
 
             static bool no_titlebar = false;
             static bool no_scrollbar = false;
@@ -404,25 +392,7 @@ int main(int, char**)
                 "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
                 "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5" };
 
-            /*const float freqs[72] = {1.0, 1.0594630943592953, 1.122462048309373, 1.189207115002721,
-                1.2599210498948732, 1.3348398541700344, 1.4142135623730951, 1.4983070768766815,
-                1.5874010519681994, 1.681792830507429, 1.7817974362806785, 1.8877486253633868, 2.0,
-                2.1189261887185906, 2.244924096618746, 2.378414230005442, 2.5198420997897464,
-                2.6696797083400687, 2.8284271247461903, 2.996614153753363, 3.174802103936399,
-                3.363585661014858, 3.563594872561357, 3.775497250726774, 4.0, 4.237852377437181,
-                4.489848193237491, 4.756828460010884, 5.039684199579493, 5.339359416680137,
-                5.656854249492381, 5.993228307506727, 6.3496042078727974, 6.727171322029716,
-                7.127189745122715, 7.550994501453547, 8.0, 8.475704754874362, 8.979696386474982,
-                9.513656920021768, 10.079368399158986, 10.678718833360273, 11.313708498984761,
-                11.986456615013454, 12.699208415745595, 13.454342644059432, 14.25437949024543,
-                15.101989002907095, 16.0, 16.95140950974872, 17.959392772949972, 19.027313840043536,
-                20.158736798317967, 21.357437666720553, 22.627416997969522, 23.9729132300269,
-                25.398416831491197, 26.908685288118864, 28.508758980490853, 30.203978005814196, 32.0,
-                33.90281901949744, 35.918785545899944, 38.05462768008707, 40.317473596635935, 42.71487533344111,
-                45.254833995939045, 47.9458264600538, 50.796833662982394, 53.81737057623773,
-                57.017517960981706, 60.40795601162839};*/
-
-            float freqs[72]{};
+            float freqs[72] { };
             for (size_t i = 0; i < 72; ++i) {
                 freqs[i] = std::powf(2, i / 12.0);
             }
@@ -434,7 +404,6 @@ int main(int, char**)
 
             SetupImGuiStyle();
 
-            // Main loop
             while (!glfwWindowShouldClose(window))
             {
                 glfwPollEvents();
@@ -627,7 +596,6 @@ int main(int, char**)
                     ImGui::EndMainMenuBar();
                 }
 
-                // Rendering
                 ImGui::Render();
                 int display_w, display_h;
                 glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -635,7 +603,6 @@ int main(int, char**)
                 glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
                 glClear(GL_COLOR_BUFFER_BIT);
                 ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
                 glfwSwapBuffers(window);
             }
         }

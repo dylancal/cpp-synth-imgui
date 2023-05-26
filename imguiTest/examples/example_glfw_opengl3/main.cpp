@@ -442,6 +442,7 @@ int main(int, char**)
                 for (auto& osc : synth_test.oscillators) {
                     ImGui::Begin((std::string("Oscillator ") + std::string(oscs[counter])).c_str(), &show_oscA, window_flags);
                     ++counter;
+                    ImGui::PlotLines("Wavetable", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::SeparatorText("Waveform Selector");
                     ImGui::Combo("Waveform", &osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
 
@@ -473,169 +474,34 @@ int main(int, char**)
                         if (ImGui::Combo("R-Note", &osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
                             osc->ps.right_phase_inc = freqs[osc->ps.current_note_right];
                         }
-                        ImGui::DragFloat("Output Volume", &osc->ps.amp, 0.0025f, 0.0f, 1.0f);
                         ImGui::DragFloat("Left Phase Increment", &osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
                         ImGui::DragFloat("Right Phase Increment", &osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
                     }
-                    ImGui::PlotLines("Wavetable", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    static bool animate = true;
+                    ImGui::Checkbox("Animate", &animate);
+                    static float rate{ 1.0f };
+                    ImGui::DragFloat("Rate", &rate, 0.005f, 0.1, 20, "%f");
+                    //static float values[90] = {};
+                    //static int values_offset = 0;
+                    //static double refresh_time = 0.0;
+                    //if (!animate || refresh_time == 0.0)
+                    //    refresh_time = ImGui::GetTime();
+                    //while (refresh_time < ImGui::GetTime())
+                    //{
+                    //    static float phase = 0.0f;
+                    //    values[values_offset] = std::sin(rate * refresh_time);
+                    //    values_offset = (values_offset + 1) % 90;
+                    //    refresh_time += 1 / 60.0f;
+                    //}
+
+                    //// Plots can display overlay texts
+                    //// (in this example, we will display an average value)
+                    //{
+                    //    ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(0, 80.0f));
+                    //}
+                    ImGui::ShowDemoWindow();
                     ImGui::End();
                 }
-
-                /*if (show_oscA)
-                {
-                    ImGui::Begin("Oscillator A", &show_oscA, window_flags); 
-                    ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("Waveform", &current_waveformA, waveforms, IM_ARRAYSIZE(waveforms));
-
-                    switch (current_waveformA) {
-                    case 0:
-                        gen_saw_wave(synth_test.m_oscA);
-                        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
-                        }
-                        break;
-                    case 1:
-                        gen_sin_wave(synth_test.m_oscA);
-                        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                        }
-                        break;
-                    case 2:
-                        gen_sqr_wave(synth_test.m_oscA, synth_test.m_oscA.ps.pulse_width);
-                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragFloat("Pulse Width", &synth_test.m_oscA.ps.pulse_width, 0.0025f, 0.0f, 1.0f);
-                        }
-                        break;
-
-                    case 3:
-                        gen_sin_saw_wave(synth_test.m_oscA);
-                        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                        }
-                        break;
-                    }
-
-                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                    {
-                        if (ImGui::Combo("L-Note", &synth_test.m_oscA.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                            synth_test.m_oscA.ps.left_phase_inc = freqs[synth_test.m_oscA.ps.current_note_left];
-                        }
-                        if (ImGui::Combo("R-Note", &synth_test.m_oscA.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
-                            synth_test.m_oscA.ps.right_phase_inc = freqs[synth_test.m_oscA.ps.current_note_right];
-                        }
-                        ImGui::DragFloat("Output Volume", &synth_test.m_oscA.ps.amp, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscA.ps.left_phase_inc, 0.005f, 1, 20, "%f");
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscA.ps.right_phase_inc, 0.005f, 1, 20, "%f");
-                    }
-                    ImGui::PlotLines("Wavetable", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-                    ImGui::End();
-                }
-
-                if (show_oscB)
-                {
-                    ImGui::Begin("Oscillator B", &show_oscB, window_flags);
-                    ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("Waveform", &current_waveformB, waveforms, IM_ARRAYSIZE(waveforms));
-
-                    switch (current_waveformB) {
-                    case 0:
-                        gen_saw_wave(synth_test.m_oscB);
-                        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
-                        }
-                        break;
-                    case 1:
-                        gen_sin_wave(synth_test.m_oscB);
-                        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                        }
-                        break;
-                    case 2:
-                        gen_sqr_wave(synth_test.m_oscB, synth_test.m_oscB.ps.pulse_width);
-                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragFloat("Pulse Width", &synth_test.m_oscB.ps.pulse_width, 0.0025f, 0.0f, 1.0f);
-                        }
-                        break;
-
-                    case 3:
-                        gen_sin_saw_wave(synth_test.m_oscB);
-                        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                        }
-                        break;
-                    }
-
-                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                    {
-                        if (ImGui::Combo("L-Note", &synth_test.m_oscB.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                            synth_test.m_oscB.ps.left_phase_inc = freqs[synth_test.m_oscB.ps.current_note_left];
-                        }
-                        if (ImGui::Combo("R-Note", &synth_test.m_oscB.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
-                            synth_test.m_oscB.ps.right_phase_inc = freqs[synth_test.m_oscB.ps.current_note_right];
-                        }
-                        ImGui::DragFloat("Output Volume", &synth_test.m_oscB.ps.amp, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscB.ps.left_phase_inc, 0.005f, 1, 20, "%f");
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscB.ps.right_phase_inc, 0.005f, 1, 20, "%f");
-                    }
-                    ImGui::PlotLines("Wavetable", synth_test.m_oscB.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-                    ImGui::End();
-                }
-
-                if (show_oscC)
-                {
-                    ImGui::Begin("Oscillator C", &show_oscC, window_flags);
-                    ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("Waveform", &current_waveformC, waveforms, IM_ARRAYSIZE(waveforms));
-
-                    switch (current_waveformC) {
-                    case 0:
-                        gen_saw_wave(synth_test.m_oscC);
-                        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
-                        }
-                        break;
-                    case 1:
-                        gen_sin_wave(synth_test.m_oscC);
-                        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                        }
-                        break;
-                    case 2:
-                        gen_sqr_wave(synth_test.m_oscC, synth_test.m_oscC.ps.pulse_width);
-                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragFloat("Pulse Width", &synth_test.m_oscC.ps.pulse_width, 0.0025f, 0.0f, 1.0f);
-                        }
-                        break;
-
-                    case 3:
-                        gen_sin_saw_wave(synth_test.m_oscC);
-                        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                        }
-                        break;
-                    }
-
-                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                    {
-                        if (ImGui::Combo("L-Note", &synth_test.m_oscC.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                            synth_test.m_oscC.ps.left_phase_inc = freqs[synth_test.m_oscC.ps.current_note_left];
-                        }
-                        if (ImGui::Combo("R-Note", &synth_test.m_oscC.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
-                            synth_test.m_oscC.ps.right_phase_inc = freqs[synth_test.m_oscC.ps.current_note_right];
-                        }
-                        ImGui::DragFloat("Output Volume", &synth_test.m_oscC.ps.amp, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscC.ps.left_phase_inc, 0.005f, 1, 20, "%f");
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscC.ps.right_phase_inc, 0.005f, 1, 20, "%f");
-                    }
-                    ImGui::PlotLines("Wavetable", synth_test.m_oscC.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-                    ImGui::End();
-                }*/
 
                 if (show_osc_mixer) {
                     ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);

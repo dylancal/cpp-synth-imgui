@@ -22,20 +22,18 @@
 #include <chrono>
 #include <iostream>
 
-#define NUM_SECONDS   (5)
-#define SAMPLE_RATE   (48000)
-#define FRAMES_PER_BUFFER  (64)
+constexpr auto NUM_SECONDS = (5);
+constexpr auto SAMPLE_RATE = (48000);
+constexpr auto FRAMES_PER_BUFFER = (64);
 
 class Synth
 {
 public:
-    //
-    // general
+    // GENERAL
     Wavetable_t m_wavetable;
     float m_amplitude{ 0.05f };
     float left_phase_inc{ 4 };
     float right_phase_inc{ 4 };
-    //
     // SAW
     // //
     // SIN
@@ -141,14 +139,13 @@ private:
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            *out++ = m_amplitude * (m_wavetable).interpolate_at(left_phase); // l
-            *out++ = m_amplitude * (m_wavetable).interpolate_at(right_phase); // r
+            *out++ = m_amplitude * (m_wavetable).interpolate_at(left_phase);
+            *out++ = m_amplitude * (m_wavetable).interpolate_at(right_phase);
             left_phase += left_phase_inc;
             if (left_phase >= TABLE_SIZE) left_phase -= TABLE_SIZE;
-            right_phase += right_phase_inc; /* higher pitch so we can distinguish left and right. */
+            right_phase += right_phase_inc;
             if (right_phase >= TABLE_SIZE) right_phase -= TABLE_SIZE;
         }
-
         return paContinue;
 
     }
@@ -316,7 +313,7 @@ int main(int, char**)
 
                 if (show_synth_settings)
                 {
-                    ImGui::Begin("Wave Synthesis Tester2 - Dylan Callaghan", &show_synth_settings, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_synth_settings, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
                     ImGui::Text("This program provides some simple manipulation of primitive waveforms."
                         "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
 
@@ -329,6 +326,9 @@ int main(int, char**)
                         if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
+                            ImGui::Button("Test");
+                            ImGui::SameLine();
+                            ImGui::Button("Test2");
                         }
                         break;
                     case 1:
@@ -346,7 +346,7 @@ int main(int, char**)
                         break;
 
                     case 3:
-                        gen_ssaw_wave(synth_test.m_wavetable);
+                        gen_sin_saw_wave(synth_test.m_wavetable);
                         if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                         }

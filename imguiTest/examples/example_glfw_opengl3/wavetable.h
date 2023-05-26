@@ -26,17 +26,9 @@ void gen_sin_wave(Wavetable_t& table) {
 }
 
 void gen_saw_wave(Wavetable_t& table) {
-    //for (int i = 0; i < TABLE_SIZE / 2; i++)
-    //{
-    //    table[i] = 2 * (float)(i + TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
-    //}
-    //for (int i = TABLE_SIZE / 2; i < TABLE_SIZE; i++)
-    //{
-    //    table[i] = 2 * (float)(i - TABLE_SIZE / 2) / TABLE_SIZE - 1.0f;
-    //}
     for (int i = 0; i < TABLE_SIZE; i++)
     {
-        table[i] = 2 * ((i + TABLE_SIZE/2) % TABLE_SIZE) / (float)TABLE_SIZE - 1.0f;
+        table[i] = 2 * ((i + TABLE_SIZE) % TABLE_SIZE) / (float)TABLE_SIZE - 1.0f;
     }
 }
 
@@ -50,5 +42,13 @@ void gen_ssaw_wave(Wavetable_t& table) {
     gen_saw_wave(tmp);
     for (int i = 0; i < TABLE_SIZE; i++) {
         table[i] = tmp.interpolate_at(std::fmod(2*i, TABLE_SIZE));
+    }
+}
+
+void gen_sin_saw_wave(Wavetable_t& table) {
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        table[i] = ((float)std::sin((i / (double)TABLE_SIZE) * M_PI * 2.) +
+            2 * ((i + TABLE_SIZE / 2) % TABLE_SIZE) / (float)TABLE_SIZE - 1.0f)/2;
     }
 }

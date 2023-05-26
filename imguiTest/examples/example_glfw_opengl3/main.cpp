@@ -407,6 +407,10 @@ int main(int, char**)
             int current_waveformB = 0;
             int current_waveformC = 0;
             int saw_supersaw_amt = 1;
+            float lfo_out = 0.0f;
+            float lfo_depth = 1.0f;
+            float lfo_rate = 1.0f;
+            bool lfo_enable = true;
 
             SetupImGuiStyle();
 
@@ -484,22 +488,37 @@ int main(int, char**)
                     static bool animate = true;
                     ImGui::Checkbox("Animate", &animate);
                     static float rate{ 1.0f };
-                    ImGui::DragFloat("Rate", &rate, 0.005f, 0.1, 20, "%f");
-                    static float values[90] = {};
-                    static int values_offset = 0;
+                    ImGui::DragFloat("Rate", &lfo_rate, 0.005f, 0.0f, 20.0f, "%f");
+                    ImGui::DragFloat("Depth", &lfo_depth, 0.005f, 0.0f, 20.0f, "%f");
                     static double refresh_time = 0.0;
-                    static float lfo_out = 0.0f;
-                    if (!animate || refresh_time == 0.0)
-                        refresh_time = ImGui::GetTime();
                     while (refresh_time < ImGui::GetTime())
                     {
-                        static float phase = 0.0f;
-                        lfo_out = std::sin(rate * refresh_time);
+                        lfo_out = std::sin(lfo_rate * refresh_time);
                         refresh_time += 1 / 60.0f;
                     }
 
                     ImGui::DragFloat("LFO", &lfo_out, 0.005f, -1.0f, 1.0f, "%f");
-                    ImGui::ShowDemoWindow();
+
+
+                    //ImGui::ShowDemoWindow();
+
+                    refresh_time = 0;
+                    static float values[90] = {};
+                    static int values_offset = 0;
+                    if (!animate || refresh_time == 0.0)
+                        refresh_time = ImGui::GetTime();
+                    while (refresh_time < ImGui::GetTime())
+                    {
+                        values[values_offset] = cos(refresh_time);
+                        values_offset = (values_offset + 1) % TABLE_SIZE;
+                        refresh_time += 1.0f / 60.0f;
+                    }
+                    //(m_oscA).interpolate_at(m_oscA.ps.left_phase)
+                    // Plots can display overlay texts
+                    // (in this example, we will display an average value)
+                    {
+                        ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(0, 80.0f));
+                    }
                     ImGui::End();
                 }
 

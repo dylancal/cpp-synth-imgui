@@ -26,7 +26,98 @@
 
 constexpr auto NUM_SECONDS = (5);
 constexpr auto SAMPLE_RATE = (48000);
-constexpr auto FRAMES_PER_BUFFER = (64);
+
+void SetupImGuiStyle()
+{
+    // Cherry style by r-lyeh from ImThemes
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    style.Alpha = 1.0f;
+    style.DisabledAlpha = 0.6000000238418579f;
+    style.WindowPadding = ImVec2(6.0f, 3.0f);
+    style.WindowRounding = 0.0f;
+    style.WindowBorderSize = 1.0f;
+    style.WindowMinSize = ImVec2(32.0f, 32.0f);
+    style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
+    style.WindowMenuButtonPosition = ImGuiDir_Left;
+    style.ChildRounding = 0.0f;
+    style.ChildBorderSize = 1.0f;
+    style.PopupRounding = 0.0f;
+    style.PopupBorderSize = 1.0f;
+    style.FramePadding = ImVec2(5.0f, 1.0f);
+    style.FrameRounding = 3.0f;
+    style.FrameBorderSize = 1.0f;
+    style.ItemSpacing = ImVec2(7.0f, 1.0f);
+    style.ItemInnerSpacing = ImVec2(1.0f, 1.0f);
+    style.CellPadding = ImVec2(4.0f, 2.0f);
+    style.IndentSpacing = 6.0f;
+    style.ColumnsMinSpacing = 6.0f;
+    style.ScrollbarSize = 13.0f;
+    style.ScrollbarRounding = 16.0f;
+    style.GrabMinSize = 20.0f;
+    style.GrabRounding = 2.0f;
+    style.TabRounding = 4.0f;
+    style.TabBorderSize = 1.0f;
+    style.TabMinWidthForCloseButton = 0.0f;
+    style.ColorButtonPosition = ImGuiDir_Right;
+    style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
+    style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+
+    style.Colors[ImGuiCol_Text] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.8799999952316284f);
+    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.2800000011920929f);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1294117718935013f, 0.1372549086809158f, 0.168627455830574f, 1.0f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 0.8999999761581421f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.5372549295425415f, 0.47843137383461f, 0.2549019753932953f, 0.1620000004768372f);
+    style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7799999713897705f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.2313725501298904f, 0.2000000029802322f, 0.2705882489681244f, 1.0f);
+    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.501960813999176f, 0.07450980693101883f, 0.2549019753932953f, 1.0f);
+    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 0.75f);
+    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 0.4699999988079071f);
+    style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
+    style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.08627451211214066f, 0.1490196138620377f, 0.1568627506494522f, 1.0f);
+    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7799999713897705f);
+    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
+    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.7098039388656616f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
+    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.4666666686534882f, 0.7686274647712708f, 0.8274509906768799f, 0.1400000005960464f);
+    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.7098039388656616f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
+    style.Colors[ImGuiCol_Button] = ImVec4(0.4666666686534882f, 0.7686274647712708f, 0.8274509906768799f, 0.1400000005960464f);
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.8600000143051147f);
+    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
+    style.Colors[ImGuiCol_Header] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7599999904632568f);
+    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.8600000143051147f);
+    style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.501960813999176f, 0.07450980693101883f, 0.2549019753932953f, 1.0f);
+    style.Colors[ImGuiCol_Separator] = ImVec4(0.4274509847164154f, 0.4274509847164154f, 0.4980392158031464f, 0.5f);
+    style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.09803921729326248f, 0.4000000059604645f, 0.7490196228027344f, 0.7799999713897705f);
+    style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.09803921729326248f, 0.4000000059604645f, 0.7490196228027344f, 1.0f);
+    style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.4666666686534882f, 0.7686274647712708f, 0.8274509906768799f, 0.03999999910593033f);
+    style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7799999713897705f);
+    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
+    style.Colors[ImGuiCol_Tab] = ImVec4(0.1764705926179886f, 0.3490196168422699f, 0.5764706134796143f, 0.8619999885559082f);
+    style.Colors[ImGuiCol_TabHovered] = ImVec4(0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.800000011920929f);
+    style.Colors[ImGuiCol_TabActive] = ImVec4(0.196078434586525f, 0.407843142747879f, 0.6784313917160034f, 1.0f);
+    style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.06666667014360428f, 0.1019607856869698f, 0.1450980454683304f, 0.9724000096321106f);
+    style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.1333333402872086f, 0.2588235437870026f, 0.4235294163227081f, 1.0f);
+    style.Colors[ImGuiCol_PlotLines] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.6299999952316284f);
+    style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
+    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.6299999952316284f);
+    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
+    style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.1882352977991104f, 0.1882352977991104f, 0.2000000029802322f, 1.0f);
+    style.Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.3098039329051971f, 0.3098039329051971f, 0.3490196168422699f, 1.0f);
+    style.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.2274509817361832f, 0.2274509817361832f, 0.2470588237047195f, 1.0f);
+    style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.05999999865889549f);
+    style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.4300000071525574f);
+    style.Colors[ImGuiCol_DragDropTarget] = ImVec4(1.0f, 1.0f, 0.0f, 0.8999999761581421f);
+    style.Colors[ImGuiCol_NavHighlight] = ImVec4(0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 1.0f);
+    style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.699999988079071f);
+    style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
+    style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.3499999940395355f);
+    style.ScaleAllSizes(3);
+}
 
 class Synth
 {
@@ -38,7 +129,7 @@ public:
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
-    Wavetable_t* oscillators[2] { & m_oscA, & m_oscB };
+    Wavetable_t* oscillators[3] { & m_oscA, & m_oscB, & m_oscC };
 
 public:
     Synth() {
@@ -49,12 +140,9 @@ public:
 
     }
 
-    void generate_new_sqr(Wavetable_t &wavetable) {
-        gen_sqr_wave(wavetable, wavetable.ps.pulse_width);
-    }
 
     bool open(PaDeviceIndex index) {
-        PaStreamParameters outputParameters;
+        PaStreamParameters outputParameters{ };
 
         outputParameters.device = index;
         if (outputParameters.device == paNoDevice) {
@@ -64,28 +152,27 @@ public:
         const PaDeviceInfo* pInfo = Pa_GetDeviceInfo(index);
         if (pInfo != 0)
         {
-            printf("Output device name: '%s'\r", pInfo->name);
+            printf("Output device name: %s\r", pInfo->name);
         }
 
-        outputParameters.channelCount = 2;       /* stereo output */
-        outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
+        outputParameters.channelCount = 2;
+        outputParameters.sampleFormat = paFloat32;
         outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
         outputParameters.hostApiSpecificStreamInfo = NULL;
 
         PaError err = Pa_OpenStream(
             &stream,
-            NULL, /* no input */
+            NULL, 
             &outputParameters,
             SAMPLE_RATE,
             paFramesPerBufferUnspecified,
-            0,      /* we won't output out of range samples so don't bother clipping them */
+            0,      
             &Synth::paCallback,
-            this            /* Using 'this' for userData so we can cast to Sine* in paCallback method */
+            this
         );
 
         if (err != paNoError)
         {
-            /* Failed to open stream to device !!! */
             return false;
         }
 
@@ -148,27 +235,34 @@ private:
             //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
             //};
             //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
-            //*out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
-            //            m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase);
-            //*out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
-            //            m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase);
-            //m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
-            //m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
-            //if (m_oscA.ps.left_phase >= TABLE_SIZE) m_oscA.ps.left_phase -= TABLE_SIZE;
-            //if (m_oscB.ps.left_phase >= TABLE_SIZE) m_oscB.ps.left_phase -= TABLE_SIZE;
-            //m_oscA.ps.right_phase += m_oscA.ps.right_phase_inc;
-            //m_oscB.ps.right_phase += m_oscB.ps.right_phase_inc;
-            //if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
-            //if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
+            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
+                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase) +
+                        m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.left_phase);
+            *out++ =    m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
+                        m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase) +
+                        m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.right_phase);
+            m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
+            m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
+            m_oscC.ps.left_phase += m_oscC.ps.left_phase_inc;
+            if (m_oscA.ps.left_phase >= TABLE_SIZE) m_oscA.ps.left_phase -= TABLE_SIZE;
+            if (m_oscB.ps.left_phase >= TABLE_SIZE) m_oscB.ps.left_phase -= TABLE_SIZE;
+            if (m_oscC.ps.left_phase >= TABLE_SIZE) m_oscC.ps.left_phase -= TABLE_SIZE;
+            m_oscA.ps.right_phase += m_oscA.ps.right_phase_inc;
+            m_oscB.ps.right_phase += m_oscB.ps.right_phase_inc;
+            m_oscC.ps.right_phase += m_oscC.ps.right_phase_inc;
+            if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
+            if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
+            if (m_oscC.ps.right_phase >= TABLE_SIZE) m_oscC.ps.right_phase -= TABLE_SIZE;
 
-            for (size_t i = 0; i < 2; ++i) {
-                *out++ = oscillators[i]->ps.amp * oscillators[i]->interpolate_at(oscillators[i]->ps.left_phase);
-                *out++ = oscillators[i]->ps.amp * oscillators[i]->interpolate_at(oscillators[i]->ps.right_phase);
-                oscillators[i]->ps.left_phase += oscillators[i]->ps.left_phase_inc;
-                if (oscillators[i]->ps.left_phase >= TABLE_SIZE) oscillators[i]->ps.left_phase -= TABLE_SIZE;
-                oscillators[i]->ps.right_phase += oscillators[i]->ps.right_phase_inc;
-                if (oscillators[i]->ps.right_phase >= TABLE_SIZE) oscillators[i]->ps.right_phase -= TABLE_SIZE;
-            }
+            //for (size_t i = 0; i < 2; ++i) {
+            //    auto idx_ps = oscillators[i]->ps;
+            //    *out++ = idx_ps.amp * oscillators[i]->interpolate_at(idx_ps.left_phase);
+            //    *out++ = idx_ps.amp * oscillators[i]->interpolate_at(idx_ps.right_phase);
+            //    idx_ps.left_phase += idx_ps.left_phase_inc;
+            //    if (idx_ps.left_phase >= TABLE_SIZE) idx_ps.left_phase -= TABLE_SIZE;
+            //    idx_ps.right_phase += idx_ps.right_phase_inc;
+            //    if (idx_ps.right_phase >= TABLE_SIZE) idx_ps.right_phase -= TABLE_SIZE;
+            //}
 
         }
         return paContinue;
@@ -220,6 +314,7 @@ static void glfw_error_callback(int error, const char* description)
 // Main code
 int main(int, char**)
 {
+    
     Wavetable_t saw_wave;
     gen_saw_wave(saw_wave);
 
@@ -248,8 +343,10 @@ int main(int, char**)
         return 1;
     }
 
-    //std::thread t1(&Synth::start, &synth_test);
+    
 
+    //std::thread t1(&Synth::start, &synth_test);
+    std::cout << std::pow(2.0f, 1 / 12.0);
     if (synth_test.open(Pa_GetDefaultOutputDevice()))
     {
         if (synth_test.start())
@@ -299,13 +396,43 @@ int main(int, char**)
             if (no_bring_to_front)  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
             if (unsaved_document)   window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
-            const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw"};
-            float ADSR_envelope[4] = { 0.0f, 0.0f, 1.0f, 0.5f };
-            float sample_length = 1.0f;
+            const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw" };
+            const char* notes[] = { "A0", "A#0", "B0",
+                "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
+                "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+                "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+                "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+                "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5" };
+
+            /*const float freqs[72] = {1.0, 1.0594630943592953, 1.122462048309373, 1.189207115002721,
+                1.2599210498948732, 1.3348398541700344, 1.4142135623730951, 1.4983070768766815,
+                1.5874010519681994, 1.681792830507429, 1.7817974362806785, 1.8877486253633868, 2.0,
+                2.1189261887185906, 2.244924096618746, 2.378414230005442, 2.5198420997897464,
+                2.6696797083400687, 2.8284271247461903, 2.996614153753363, 3.174802103936399,
+                3.363585661014858, 3.563594872561357, 3.775497250726774, 4.0, 4.237852377437181,
+                4.489848193237491, 4.756828460010884, 5.039684199579493, 5.339359416680137,
+                5.656854249492381, 5.993228307506727, 6.3496042078727974, 6.727171322029716,
+                7.127189745122715, 7.550994501453547, 8.0, 8.475704754874362, 8.979696386474982,
+                9.513656920021768, 10.079368399158986, 10.678718833360273, 11.313708498984761,
+                11.986456615013454, 12.699208415745595, 13.454342644059432, 14.25437949024543,
+                15.101989002907095, 16.0, 16.95140950974872, 17.959392772949972, 19.027313840043536,
+                20.158736798317967, 21.357437666720553, 22.627416997969522, 23.9729132300269,
+                25.398416831491197, 26.908685288118864, 28.508758980490853, 30.203978005814196, 32.0,
+                33.90281901949744, 35.918785545899944, 38.05462768008707, 40.317473596635935, 42.71487533344111,
+                45.254833995939045, 47.9458264600538, 50.796833662982394, 53.81737057623773,
+                57.017517960981706, 60.40795601162839};*/
+
+            float freqs[72]{};
+            for (size_t i = 0; i < 72; ++i) {
+                freqs[i] = std::powf(2, i / 12.0);
+            }
+
             int current_waveformA = 0;
             int current_waveformB = 0;
             int current_waveformC = 0;
             int saw_supersaw_amt = 1;
+
+            SetupImGuiStyle();
 
             // Main loop
             while (!glfwWindowShouldClose(window))
@@ -320,61 +447,6 @@ int main(int, char**)
                     ImGui::PlotLines("Wavetable Visualisation", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
-
-                if (show_intro_window)
-                {
-                    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_intro_window, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                    ImGui::Text("This program provides some simple manipulation of primitive waveforms."
-                        "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
-
-                    if (ImGui::Button("Close Me"))
-                        show_intro_window = false;
-                    ImGui::End();
-                }
-
-
-
-                //if (show_synth_settings)
-                //{
-                //    ImGui::Begin("Wave Synthesis Tester - Dylan Callaghan", &show_synth_settings, window_flags);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                //    ImGui::Text("This program provides some simple manipulation of primitive waveforms."
-                //        "\nThese waveforms are generated with simple math in a callback function\nand then added to an audio buffer");
-
-                //    ImGui::SeparatorText("Waveform Selector");
-                //    ImGui::Combo("Waveform", &current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
-
-                //    switch (current_waveform) {
-                //    case 0:
-                //        gen_saw_wave(synth_test.m_oscA);
-                //        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                //        {
-                //            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
-                //            ImGui::Button("Test");
-                //            ImGui::SameLine();
-                //            ImGui::Button("Test2");
-                //        }
-                //        break;
-                //    case 1:
-                //        gen_sin_wave(synth_test.m_oscA);
-                //        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                //        {
-                //        }
-                //        break;
-                //    case 2:
-                //        gen_sqr_wave(synth_test.m_oscA, synth_test.m_pulseWidth);
-                //        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                //        {
-                //            ImGui::DragFloat("Pulse Width", &synth_test.m_pulseWidth, 0.0025f, 0.0f, 1.0f);
-                //        }
-                //        break;
-
-                //    case 3:
-                //        gen_sin_saw_wave(synth_test.m_oscA);
-                //        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                //        {
-                //        }
-                //        break;
-                //    }
 
                 if (show_oscA)
                 {
@@ -414,9 +486,15 @@ int main(int, char**)
 
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
+                        if (ImGui::Combo("L-Note", &synth_test.m_oscA.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                            synth_test.m_oscA.ps.left_phase_inc = freqs[synth_test.m_oscA.ps.current_note_left];
+                        }
+                        if (ImGui::Combo("R-Note", &synth_test.m_oscA.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                            synth_test.m_oscA.ps.right_phase_inc = freqs[synth_test.m_oscA.ps.current_note_right];
+                        }
                         ImGui::DragFloat("Output Volume", &synth_test.m_oscA.ps.amp, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscA.ps.left_phase_inc, 0.005f, 1, 20);
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscA.ps.right_phase_inc, 0.005f, 1, 20);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscA.ps.left_phase_inc, 0.005f, 1, 20, "%f");
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscA.ps.right_phase_inc, 0.005f, 1, 20, "%f");
                     }
                     ImGui::PlotLines("Wavetable", synth_test.m_oscA.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
@@ -460,11 +538,69 @@ int main(int, char**)
 
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
+                        if (ImGui::Combo("L-Note", &synth_test.m_oscB.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                            synth_test.m_oscB.ps.left_phase_inc = freqs[synth_test.m_oscB.ps.current_note_left];
+                        }
+                        if (ImGui::Combo("R-Note", &synth_test.m_oscB.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                            synth_test.m_oscB.ps.right_phase_inc = freqs[synth_test.m_oscB.ps.current_note_right];
+                        }
                         ImGui::DragFloat("Output Volume", &synth_test.m_oscB.ps.amp, 0.0025f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscB.ps.left_phase_inc, 0.005f, 1, 20);
-                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscB.ps.right_phase_inc, 0.005f, 1, 20);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscB.ps.left_phase_inc, 0.005f, 1, 20, "%f");
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscB.ps.right_phase_inc, 0.005f, 1, 20, "%f");
                     }
                     ImGui::PlotLines("Wavetable", synth_test.m_oscB.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    ImGui::End();
+                }
+
+                if (show_oscC)
+                {
+                    ImGui::Begin("Oscillator C", &show_oscC, window_flags);
+                    ImGui::SeparatorText("Waveform Selector");
+                    ImGui::Combo("Waveform", &current_waveformC, waveforms, IM_ARRAYSIZE(waveforms));
+
+                    switch (current_waveformC) {
+                    case 0:
+                        gen_saw_wave(synth_test.m_oscC);
+                        if (ImGui::CollapsingHeader("Sawtooth Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            ImGui::DragInt("Supersaw amount", &saw_supersaw_amt, 0.05f, 0, 10);
+                        }
+                        break;
+                    case 1:
+                        gen_sin_wave(synth_test.m_oscC);
+                        if (ImGui::CollapsingHeader("Sine Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                        }
+                        break;
+                    case 2:
+                        gen_sqr_wave(synth_test.m_oscC, synth_test.m_oscC.ps.pulse_width);
+                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            ImGui::DragFloat("Pulse Width", &synth_test.m_oscC.ps.pulse_width, 0.0025f, 0.0f, 1.0f);
+                        }
+                        break;
+
+                    case 3:
+                        gen_sin_saw_wave(synth_test.m_oscC);
+                        if (ImGui::CollapsingHeader("Supersaw Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                        }
+                        break;
+                    }
+
+                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                    {
+                        if (ImGui::Combo("L-Note", &synth_test.m_oscC.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                            synth_test.m_oscC.ps.left_phase_inc = freqs[synth_test.m_oscC.ps.current_note_left];
+                        }
+                        if (ImGui::Combo("R-Note", &synth_test.m_oscC.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                            synth_test.m_oscC.ps.right_phase_inc = freqs[synth_test.m_oscC.ps.current_note_right];
+                        }
+                        ImGui::DragFloat("Output Volume", &synth_test.m_oscC.ps.amp, 0.0025f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Left Phase Increment", &synth_test.m_oscC.ps.left_phase_inc, 0.005f, 1, 20, "%f");
+                        ImGui::DragFloat("Right Phase Increment", &synth_test.m_oscC.ps.right_phase_inc, 0.005f, 1, 20, "%f");
+                    }
+                    ImGui::PlotLines("Wavetable", synth_test.m_oscC.table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::End();
                 }
 

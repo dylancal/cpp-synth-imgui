@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
-#define TABLE_SIZE   (872)
+constexpr auto TABLE_SIZE = (872);
 #ifndef M_PI
 #define M_PI  (3.14159265)
 #endif
@@ -12,8 +12,10 @@ struct OscSettings {
     float amp{ 0.05f };
     float left_phase{ 0 };
     float right_phase{ 0 };
-    float left_phase_inc{ 4 };
-    float right_phase_inc{ 4 };
+    float left_phase_inc{ 1 };
+    float right_phase_inc{ 1 };
+    int current_note_left{ 1 };
+    int current_note_right{ 1 };
     // SQR
     float pulse_width{ 0.5f };
 };

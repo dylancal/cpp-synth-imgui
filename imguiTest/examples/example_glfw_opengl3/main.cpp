@@ -24,9 +24,14 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <utility>
 
 constexpr auto NUM_SECONDS = (5);
 constexpr auto SAMPLE_RATE = (48000);
+
+struct lfo_data {
+
+};
 
 void SetupImGuiStyle()
 {
@@ -131,8 +136,12 @@ public:
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
-    Wavetable_t m_lfo;
-    std::vector<Wavetable_t*> oscillators { & m_oscA, & m_oscB, & m_oscC };
+    Wavetable_t m_lfoA;
+    Wavetable_t m_lfoB;
+    Wavetable_t m_lfoC;
+    
+
+    std::vector<std::pair<Wavetable_t*, Wavetable_t*>> oscillators { {&m_oscA, & m_lfoA}, {&m_oscB, &m_lfoB}, {&m_oscC, &m_lfoC} };
     float amplitude{ 0.1f };
 
 public:
@@ -140,7 +149,9 @@ public:
         gen_saw_wave(m_oscA);
         gen_saw_wave(m_oscB);
         gen_saw_wave(m_oscC);
-        gen_sin_wave(m_lfo);
+        gen_saw_wave(m_lfoA);
+        gen_saw_wave(m_lfoB);
+        gen_saw_wave(m_lfoC);
         sprintf_s(message, "Synth End ");
     }
 
@@ -423,7 +434,7 @@ int main(int, char**) {
                     for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
                         float tmp = 0;
                         for (const auto& osc : synth_test.oscillators) {
-                            tmp += osc->interpolate_at(i*osc->ps.left_phase_inc)*osc->ps.amp;
+                            tmp += osc.first->interpolate_at(i*osc.first->ps.left_phase_inc)*osc.first->ps.amp;
                         }
                         sum_table_L[i] = tmp;
                     }
@@ -431,7 +442,7 @@ int main(int, char**) {
                     for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
                         float tmp = 0;
                         for (const auto& osc : synth_test.oscillators) {
-                            tmp += osc->interpolate_at(i * osc->ps.right_phase_inc) * osc->ps.amp;
+                            tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
                         }
                         sum_table_R[i] = tmp;
                     }
@@ -443,7 +454,10 @@ int main(int, char**) {
 
                 const char* oscs[3] = { "A", "B", "C" };
                 std::size_t counter = 0;
-                for (auto& osc : synth_test.oscillators) {
+                /////////////////////////////////////////////////////////////////
+                for (auto& oscpair : synth_test.oscillators) {
+                    Wavetable_t* osc = oscpair.first;
+                    Wavetable_t* lfo = oscpair.second;
                     ImGui::Begin((std::string("Oscillator ") + std::string(oscs[counter])).c_str(), &show_oscA, window_flags);
                     ++counter;
                     ImGui::PlotLines("Wavetable", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
@@ -481,29 +495,55 @@ int main(int, char**) {
                         ImGui::DragFloat("Left Phase Increment", &osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
                         ImGui::DragFloat("Right Phase Increment", &osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
                     }
-                    Wavetable_t& wave = sin_wave;
-                    ImGui::DragFloat("LFO Rate", &wave.ps.left_phase_inc, 0.005f, 0, 5, "%f");
-                    
-                    static bool animate = true;
-                    ImGui::Checkbox("Animate", &animate);
-                    static float values[90] = {};
-                    static int values_offset = 0;
-                    static double refresh_time = 0.0;
-                    if (!animate || refresh_time == 0.0)
-                        refresh_time = ImGui::GetTime();
-                    while (refresh_time < ImGui::GetTime())
+                    if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        static float phase = 0.0f;
-                        values[values_offset] = (wave).interpolate_at(wave.ps.left_phase);
-                        values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
-                        wave.ps.left_phase += wave.ps.left_phase_inc;
-                        if (wave.ps.left_phase >= TABLE_SIZE) wave.ps.left_phase -= TABLE_SIZE;
-                        refresh_time += 0.1f / 60.0f;
+                        ImGui::Combo("Waveform", &lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+
+                        switch (lfo->ps.current_waveform) {
+                        case 0:
+                            gen_saw_wave(*lfo);
+                            break;
+                        case 1:
+                            gen_sin_wave(*lfo);
+                            break;
+                        case 2:
+                            gen_sqr_wave(*lfo, lfo->ps.pulse_width);
+                            if (ImGui::CollapsingHeader("Square Settings"))
+                            {
+                                ImGui::DragFloat("Pulse Width", &lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f);
+                            }
+                            break;
+
+                        case 3:
+                            gen_sin_saw_wave(*lfo);
+                            break;
+                        }
+                        /////////////////////
+                        ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0, 5, "%f");
+
+                        static bool animate = true;
+                        ImGui::Checkbox("Animate", &animate);
+                        static float values[90];
+                        static int values_offset = 0;
+                        static double refresh_time = 0.0;
+                        if (!animate || refresh_time == 0.0)
+                            refresh_time = ImGui::GetTime();
+                        while (refresh_time < ImGui::GetTime())
+                        {
+                            static float phase = 0.0f;
+                            values[values_offset] = lfo->interpolate_at(lfo->ps.left_phase);
+                            values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+                            lfo->ps.left_phase += lfo->ps.left_phase_inc;
+                            if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;
+                            refresh_time += 0.1f / 60.0f;
+                        }
+                        ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
                     }
-                    ImGui::DragFloat("LFO Rate", &wave.ps.left_phase_inc, 0.005f, 0, 5, "%f");
-                    ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
+                   
                     ImGui::End();
                 }
+
+                ////////////////////////////////////////////////////////////////////////////////
 
                 if (show_osc_mixer) {
                     ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);

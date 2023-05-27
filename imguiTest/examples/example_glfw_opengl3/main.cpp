@@ -131,6 +131,7 @@ public:
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
+    Wavetable_t m_lfo;
     std::vector<Wavetable_t*> oscillators { & m_oscA, & m_oscB, & m_oscC };
     float amplitude{ 0.1f };
 
@@ -139,6 +140,7 @@ public:
         gen_saw_wave(m_oscA);
         gen_saw_wave(m_oscB);
         gen_saw_wave(m_oscC);
+        gen_sin_wave(m_lfo);
         sprintf_s(message, "Synth End ");
     }
 
@@ -301,9 +303,7 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-int main(int, char**)
-{
-    
+int main(int, char**) {
     Wavetable_t saw_wave;
     Wavetable_t sin_wave;
     Wavetable_t sqr_wave;
@@ -337,10 +337,6 @@ int main(int, char**)
         return 1;
     }
 
-    
-
-    //std::thread t1(&Synth::start, &synth_test);
-    std::cout << std::pow(2.0f, 1 / 12.0);
     if (synth_test.open(Pa_GetDefaultOutputDevice()))
     {
         if (synth_test.start())
@@ -485,40 +481,27 @@ int main(int, char**)
                         ImGui::DragFloat("Left Phase Increment", &osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
                         ImGui::DragFloat("Right Phase Increment", &osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
                     }
+                    Wavetable_t& wave = sin_wave;
+                    ImGui::DragFloat("LFO Rate", &wave.ps.left_phase_inc, 0.005f, 0, 5, "%f");
+                    
                     static bool animate = true;
                     ImGui::Checkbox("Animate", &animate);
-                    static float rate{ 1.0f };
-                    ImGui::DragFloat("Rate", &lfo_rate, 0.005f, 0.0f, 20.0f, "%f");
-                    ImGui::DragFloat("Depth", &lfo_depth, 0.005f, 0.0f, 20.0f, "%f");
-                    static double refresh_time = 0.0;
-                    while (refresh_time < ImGui::GetTime())
-                    {
-                        lfo_out = std::sin(lfo_rate * refresh_time);
-                        refresh_time += 1 / 60.0f;
-                    }
-
-                    ImGui::DragFloat("LFO", &lfo_out, 0.005f, -1.0f, 1.0f, "%f");
-
-
-                    //ImGui::ShowDemoWindow();
-
-                    refresh_time = 0;
                     static float values[90] = {};
                     static int values_offset = 0;
+                    static double refresh_time = 0.0;
                     if (!animate || refresh_time == 0.0)
                         refresh_time = ImGui::GetTime();
                     while (refresh_time < ImGui::GetTime())
                     {
-                        values[values_offset] = cos(refresh_time);
-                        values_offset = (values_offset + 1) % TABLE_SIZE;
-                        refresh_time += 1.0f / 60.0f;
+                        static float phase = 0.0f;
+                        values[values_offset] = (wave).interpolate_at(wave.ps.left_phase);
+                        values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+                        wave.ps.left_phase += wave.ps.left_phase_inc;
+                        if (wave.ps.left_phase >= TABLE_SIZE) wave.ps.left_phase -= TABLE_SIZE;
+                        refresh_time += 0.1f / 60.0f;
                     }
-                    //(m_oscA).interpolate_at(m_oscA.ps.left_phase)
-                    // Plots can display overlay texts
-                    // (in this example, we will display an average value)
-                    {
-                        ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(0, 80.0f));
-                    }
+                    ImGui::DragFloat("LFO Rate", &wave.ps.left_phase_inc, 0.005f, 0, 5, "%f");
+                    ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
                     ImGui::End();
                 }
 
@@ -575,13 +558,9 @@ int main(int, char**)
         synth_test.close();
     }
 
-    printf("Test finished.\n");
-    //t1.join();
-    // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
-
     glfwDestroyWindow(window);
     glfwTerminate();
 

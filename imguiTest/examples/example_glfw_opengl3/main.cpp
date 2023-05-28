@@ -29,9 +29,7 @@
 constexpr auto NUM_SECONDS = (5);
 constexpr auto SAMPLE_RATE = (48000);
 
-struct lfo_data {
 
-};
 
 void SetupImGuiStyle()
 {
@@ -136,12 +134,12 @@ public:
     Wavetable_t m_oscA;
     Wavetable_t m_oscB;
     Wavetable_t m_oscC;
-    Wavetable_t m_lfoA;
-    Wavetable_t m_lfoB;
-    Wavetable_t m_lfoC;
+    LFO_t m_lfoA;
+    LFO_t m_lfoB;
+    LFO_t m_lfoC;
     
 
-    std::vector<std::pair<Wavetable_t*, Wavetable_t*>> oscillators { {&m_oscA, & m_lfoA}, {&m_oscB, &m_lfoB}, {&m_oscC, &m_lfoC} };
+    std::vector<std::pair<Wavetable_t*, LFO_t*>> oscillators {{ &m_oscA, & m_lfoA}, { &m_oscB, &m_lfoB }, { &m_oscC, &m_lfoC }};
     float amplitude{ 0.1f };
 
 public:
@@ -149,9 +147,9 @@ public:
         gen_saw_wave(m_oscA);
         gen_saw_wave(m_oscB);
         gen_saw_wave(m_oscC);
-        gen_saw_wave(m_lfoA);
-        gen_saw_wave(m_lfoB);
-        gen_saw_wave(m_lfoC);
+        gen_sin_wave(m_lfoA);
+        gen_sin_wave(m_lfoB);
+        gen_sin_wave(m_lfoC);
         sprintf_s(message, "Synth End ");
     }
 
@@ -331,12 +329,12 @@ int main(int, char**) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Lookup-table Synthesizer - Dylan Callaghan", nullptr, nullptr);
     if (window == nullptr)
         return 1;
 
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1);
 
     Synth synth_test;
     ScopedPaHandler paInit;
@@ -410,15 +408,6 @@ int main(int, char**) {
                 freqs[i] = std::powf(2, (float) (i / 12.0));
             }
 
-            int current_waveformA = 0;
-            int current_waveformB = 0;
-            int current_waveformC = 0;
-            int saw_supersaw_amt = 1;
-            float lfo_out = 0.0f;
-            float lfo_depth = 1.0f;
-            float lfo_rate = 1.0f;
-            bool lfo_enable = true;
-
             SetupImGuiStyle();
 
             while (!glfwWindowShouldClose(window))
@@ -457,10 +446,10 @@ int main(int, char**) {
                 /////////////////////////////////////////////////////////////////
                 for (auto& oscpair : synth_test.oscillators) {
                     Wavetable_t* osc = oscpair.first;
-                    Wavetable_t* lfo = oscpair.second;
+                    LFO_t* lfo = oscpair.second;
                     ImGui::Begin((std::string("Oscillator ") + std::string(oscs[counter])).c_str(), &show_oscA, window_flags);
                     ++counter;
-                    ImGui::PlotLines("Wavetable", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+                    ImGui::PlotLines("Waveform", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::SeparatorText("Waveform Selector");
                     ImGui::Combo("Waveform", &osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
 
@@ -497,8 +486,7 @@ int main(int, char**) {
                     }
                     if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        ImGui::Combo("Waveform", &lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
-
+                        ImGui::Combo("LFO Waveform", &lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
                         switch (lfo->ps.current_waveform) {
                         case 0:
                             gen_saw_wave(*lfo);
@@ -518,32 +506,25 @@ int main(int, char**) {
                             gen_sin_saw_wave(*lfo);
                             break;
                         }
-                        /////////////////////
-                        ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0, 5, "%f");
-
-                        static bool animate = true;
-                        ImGui::Checkbox("Animate", &animate);
-                        static float values[90];
-                        static int values_offset = 0;
-                        static double refresh_time = 0.0;
-                        if (!animate || refresh_time == 0.0)
-                            refresh_time = ImGui::GetTime();
-                        while (refresh_time < ImGui::GetTime())
+                        ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable);
+                        ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0, 15, "%f");
+                        ImGui::DragFloat("LFO Depth", &lfo->lfo_depth, 0.005f, 0, 1, "%f");
+                        if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
+                            lfo->refresh_time = ImGui::GetTime();
+                        while (lfo->refresh_time < ImGui::GetTime())
                         {
-                            static float phase = 0.0f;
-                            values[values_offset] = lfo->interpolate_at(lfo->ps.left_phase);
-                            values_offset = (values_offset + 1) % IM_ARRAYSIZE(values);
+                            lfo->values[lfo->values_offset] = lfo->lfo_depth * lfo->interpolate_at(lfo->ps.left_phase);
+                            lfo->values_offset = (lfo->values_offset + 1) % IM_ARRAYSIZE(lfo->values);
                             lfo->ps.left_phase += lfo->ps.left_phase_inc;
                             if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;
-                            refresh_time += 0.1f / 60.0f;
+                            if (!lfo->lfo_enable) lfo->ps.left_phase = 0;
+                            lfo->refresh_time += 0.1f / 60.0f;
                         }
-                        ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
+                        ImGui::PlotLines("Lines", lfo->values, IM_ARRAYSIZE(lfo->values), lfo->values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
                     }
                    
                     ImGui::End();
                 }
-
-                ////////////////////////////////////////////////////////////////////////////////
 
                 if (show_osc_mixer) {
                     ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);

@@ -16,7 +16,7 @@ struct OscSettings {
     float right_phase_inc{ 1 };
     int current_note_left{ 1 };
     int current_note_right{ 1 };
-    int current_waveform{ 0 };
+    int current_waveform{ 1 };
     // SQR
     float pulse_width{ 0.5f };
 };
@@ -31,6 +31,14 @@ struct Wavetable_t
         fl = std::modf(idx, &wl);
         return std::lerp(table[(int)wl % TABLE_SIZE], table[(int)(wl + 1) % TABLE_SIZE], fl);
     }
+};
+
+struct LFO_t : public Wavetable_t {
+    float values[90]{ 0 };
+    int values_offset{ 0 };
+    double refresh_time{ 0.0 };
+    float lfo_depth{ 0 };
+    bool lfo_enable{ false };
 };
 
 void gen_sin_wave(Wavetable_t& table) {

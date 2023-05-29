@@ -49,6 +49,11 @@ struct LFO_t : public Wavetable_t {
     double refresh_time{ 0.0 };
     float lfo_depth{ 0 };
     bool lfo_enable{ false };
+    float interpolate() {
+        float wl, fl;
+        fl = std::modf(ps.left_phase, &wl);
+        return std::lerp(table[(int)wl % TABLE_SIZE], table[(int)(wl + 1) % TABLE_SIZE], fl);
+    }
 };
 
 void gen_sin_wave(Wavetable_t& table) {

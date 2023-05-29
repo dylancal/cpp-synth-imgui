@@ -248,12 +248,12 @@ private:
             //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
             //};
             //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
-            *out++ =    amplitude * (clip(m_oscA.ps.amp + m_lfoA.interpolate_left() * m_lfoA.lfo_depth) * (m_oscA).interpolate_left() +
-                                        clip(m_oscB.ps.amp + m_lfoB.interpolate_left() * m_lfoB.lfo_depth) * (m_oscB).interpolate_left() +
-                                        clip(m_oscC.ps.amp + m_lfoC.interpolate_left() * m_lfoC.lfo_depth) * (m_oscC).interpolate_left());
-            *out++ =    amplitude * (m_oscA.ps.amp * (m_oscA).interpolate_right() +
-                                m_oscB.ps.amp * (m_oscB).interpolate_right() +
-                                m_oscC.ps.amp * (m_oscC).interpolate_right());
+            *out++ = amplitude * (m_oscA.ps.amp * clip(half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_left() +
+                                m_oscB.ps.amp * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_left() +
+                                m_oscC.ps.amp * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_left());
+            *out++ =    amplitude * (m_oscA.ps.amp * clip(half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_right() +
+                                m_oscB.ps.amp * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_right() +
+                                m_oscC.ps.amp * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_right());
             m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
             m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
             m_oscC.ps.left_phase += m_oscC.ps.left_phase_inc;
@@ -507,8 +507,8 @@ int main(int, char**) {
                             break;
                         }
                         ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable);
-                        ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0, 15, "%f");
-                        ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, 0, 1, "%f");
+                        ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f");
+                        ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, -1.0f, 1.0f, "%f");
                         if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
                             lfo->refresh_time = ImGui::GetTime();
                         while (lfo->refresh_time < ImGui::GetTime())

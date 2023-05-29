@@ -265,7 +265,7 @@ private:
             m_oscC.ps.right_phase += m_oscC.ps.right_phase_inc;
             if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
             if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
-            if (m_oscC.ps.right_phase >= TABLE_SIZE) m_oscC.ps.right_phase -= TABLE_SIZE;
+            if (m_oscC.ps.right_phase >= TABLE_SIZE) m_oscC.ps.right_phase -= TABLE_SIZE;//
         }
         return paContinue;
     }

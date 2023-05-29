@@ -248,12 +248,12 @@ private:
             //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
             //};
             //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
-            *out++ =    amplitude * (m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.left_phase) +
-                                m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.left_phase) +
-                                m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.left_phase));
-            *out++ =    amplitude * (m_oscA.ps.amp * (m_oscA).interpolate_at(m_oscA.ps.right_phase) +
-                                m_oscB.ps.amp * (m_oscB).interpolate_at(m_oscB.ps.right_phase) +
-                                m_oscC.ps.amp * (m_oscC).interpolate_at(m_oscC.ps.right_phase));
+            *out++ =    amplitude * (clip(m_oscA.ps.amp + m_lfoA.interpolate_left() * m_lfoA.lfo_depth) * (m_oscA).interpolate_left() +
+                                        clip(m_oscB.ps.amp + m_lfoB.interpolate_left() * m_lfoB.lfo_depth) * (m_oscB).interpolate_left() +
+                                        clip(m_oscC.ps.amp + m_lfoC.interpolate_left() * m_lfoC.lfo_depth) * (m_oscC).interpolate_left());
+            *out++ =    amplitude * (m_oscA.ps.amp * (m_oscA).interpolate_right() +
+                                m_oscB.ps.amp * (m_oscB).interpolate_right() +
+                                m_oscC.ps.amp * (m_oscC).interpolate_right());
             m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
             m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
             m_oscC.ps.left_phase += m_oscC.ps.left_phase_inc;
@@ -508,12 +508,12 @@ int main(int, char**) {
                         }
                         ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable);
                         ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0, 15, "%f");
-                        ImGui::DragFloat("LFO Depth", &lfo->lfo_depth, 0.005f, 0, 1, "%f");
+                        ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, 0, 1, "%f");
                         if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
                             lfo->refresh_time = ImGui::GetTime();
                         while (lfo->refresh_time < ImGui::GetTime())
                         {
-                            lfo->values[lfo->values_offset] = lfo->lfo_depth * lfo->interpolate_at(lfo->ps.left_phase);
+                            lfo->values[lfo->values_offset] = lfo->lfo_depth * lfo->interpolate_left();
                             lfo->values_offset = (lfo->values_offset + 1) % IM_ARRAYSIZE(lfo->values);
                             lfo->ps.left_phase += lfo->ps.left_phase_inc;
                             if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;

@@ -219,13 +219,16 @@ int main(int, char**) {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;
+
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
+
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Lookup-table Synthesizer", nullptr, nullptr);
     if (window == nullptr)
         return 1;
+
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -233,55 +236,62 @@ int main(int, char**) {
     Synth st;
     ScopedPaHandler paInit;
 
-    if (paInit.result() != paNoError) {
+    // check that port audio streams are opened correctly with no errors
+    if (paInit.result()) {
         fprintf(stderr, "An error occurred while using the portaudio stream\n");
         fprintf(stderr, "Error number: %d\n", paInit.result());
         fprintf(stderr, "Error message: %s\n", Pa_GetErrorText(paInit.result()));
         return 1;
     }
 
-    if (!st.open(Pa_GetDefaultOutputDevice()))
-    {
-        
-    }
-    if (!st.start())
-    {
-
+    if (!st.open(Pa_GetDefaultOutputDevice())) {
+        fprintf(stderr, "An error occurred while using the portaudio stream\n");
+        return 1;
     }
 
+    if (!st.start()) {
+        fprintf(stderr, "An error occurred while using the portaudio stream\n");
+        return 1;
+    }
+
+    // program can continue with starting imgui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // enable keyboard 
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // enable gamepad 
 
-    ImGui::StyleColorsDark();
+   /* ImGui::StyleColorsDark();*/ // not needed since we are using a custom theme
 
+    // set up for glfw + openGL
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Our state
-    bool show_intro_window = true;
-    bool show_wavetable_window = true;
-    bool show_synth_settings = true;
-    bool show_oscA = true;
-    bool show_oscB = true;
-    bool show_oscC = true;
-    bool show_osc_mixer = true;
-    ImVec4 clear_color = ImVec4(0.20f, 0.09f, 0.14f, 0.95f);
+    // window states
+    bool show_intro_window      = true;
+    bool show_wavetable_window  = true;
+    bool show_synth_settings    = true;
+    bool show_oscA              = true;
+    bool show_oscB              = true;
+    bool show_oscC              = true;
+    bool show_osc_mixer         = true;
 
-    static bool no_titlebar = false;
-    static bool no_scrollbar = false;
-    static bool no_menu = true;
-    static bool no_move = false;
-    static bool no_resize = false;
-    static bool no_collapse = false;
-    static bool no_close = false;
-    static bool no_nav = false;
-    static bool no_background = false;
-    static bool no_bring_to_front = false;
-    static bool unsaved_document = false;
+    // default window flags for use on all windows
+    const bool no_titlebar            = false;
+    const bool no_scrollbar           = false;
+    const bool no_menu                = true;
+    const bool no_move                = false;
+    const bool no_resize              = false;
+    const bool no_collapse            = false;
+    const bool no_nav                 = false;
+    const bool no_background          = false;
+    const bool no_bring_to_front      = false;
+    const bool unsaved_document       = false;
 
+    // transparent background color
+    ImVec4 clear_color = ImVec4(0.20f, 0.09f, 0.14f, 0.95f); 
+
+    // apply window flags
     ImGuiWindowFlags window_flags = 0;
     if (no_titlebar)        window_flags |= ImGuiWindowFlags_NoTitleBar;
     if (no_scrollbar)       window_flags |= ImGuiWindowFlags_NoScrollbar;
@@ -294,7 +304,10 @@ int main(int, char**) {
     if (no_bring_to_front)  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
     if (unsaved_document)   window_flags |= ImGuiWindowFlags_UnsavedDocument;
 
+    // wwaveform names for dropdown lists
     const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw" };
+
+    // notes for dropdown list, index used for freq manipulation
     const char* notes[] = { "A0", "A#0", "B0",
         "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
         "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
@@ -302,43 +315,47 @@ int main(int, char**) {
         "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
         "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5" };
 
+    // create array of frequencies
     float freqs[72]{ };
-    for (size_t i = 0; i < 72; ++i) {
+    for (std::size_t i = 0; i < 72; ++i) {
         freqs[i] = std::powf(2, (float)(i / 12.0));
     }
 
+    // non atomic variables used for the gui
+    // along with vectors containing pointers to them
+    // for easy iteration later on
     float gui_global_amp{ 0.1f };
-
     float gui_oscA_amp{ 0.33f };
     float gui_oscB_amp{ 0.33f };
     float gui_oscC_amp{ 0.33f };
-    std::vector<float*> amps {&gui_oscA_amp, & gui_oscB_amp, & gui_oscC_amp};
-
     float gui_oscA_lpi{ 1.0f };
     float gui_oscA_rpi{ 1.0f };
     float gui_oscB_lpi{ 1.0f };
     float gui_oscB_rpi{ 1.0f };
     float gui_oscC_lpi{ 1.0f };
     float gui_oscC_rpi{ 1.0f };
-    std::vector<float*> lpis {&gui_oscA_lpi, & gui_oscB_lpi, & gui_oscC_lpi};
-    std::vector<float*> rpis {&gui_oscA_rpi, & gui_oscB_rpi, & gui_oscC_rpi};
-
     float gui_oscA_pw{ 0.5f };
     float gui_oscB_pw{ 0.5f };
     float gui_oscC_pw{ 0.5f };
+    std::vector<float*> gui_amplitudes {&gui_oscA_amp, & gui_oscB_amp, & gui_oscC_amp};
+    std::vector<float*> gui_left_phase_incs {&gui_oscA_lpi, & gui_oscB_lpi, & gui_oscC_lpi};
+    std::vector<float*> gui_right_phase_incs {&gui_oscA_rpi, & gui_oscB_rpi, & gui_oscC_rpi};
     std::vector<float*> pws {&gui_oscA_pw, & gui_oscB_pw, & gui_oscC_pw};
 
+    // so we aren't updating variables every single frame
     std::atomic<bool> gui_updated { false };
 
     SetupImGuiStyle();
-
     while (!glfwWindowShouldClose(window))
     {
+        // get ready for drawing GUI
         glfwPollEvents();
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        // this window shows the combined waveform from the 3 oscillators
+        // with the correct amplitudes and pitches per channel
         if (show_wavetable_window) {
             ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
             float sum_table_L[TABLE_SIZE]{};
@@ -363,16 +380,22 @@ int main(int, char**) {
             ImGui::End();
         }
 
+        // idk why i have std::pair and shit and then also use an array and counter
+        // just ignore the stupid shit
+        // it would maybe make sense if the things were constructed _in_ the pair
         const char* oscs[3] = { "A", "B", "C" };
         std::size_t osc_idx = 0;
-        /////////////////////////////////////////////////////////////////
+
+        // iteratively create oscillator windows, since they all function the same this is done
+        // in a loop, saves writing it out 3 times
         for (auto& oscpair : st.oscillators) {
             Wavetable_t* osc = oscpair.first;
             LFO_t* lfo = oscpair.second;
             ImGui::Begin((std::string("Oscillator ") + std::string(oscs[osc_idx])).c_str(), &show_oscA, window_flags);
             ImGui::PlotLines("Waveform", osc->table, TABLE_SIZE, 0, nullptr, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
             ImGui::SeparatorText("Waveform Selector");
-            if (ImGui::Combo("Waveform", (int*)&osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms))) gui_updated = true;
+            if (ImGui::Combo("Waveform", (int*)&osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms)))
+                gui_updated = true;
 
             switch (osc->ps.current_waveform) {
             case 0:
@@ -384,11 +407,9 @@ int main(int, char**) {
             case 2:
                 gen_sqr_wave(*osc, osc->ps.pulse_width);
                 if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                {
-                    if (ImGui::DragFloat("Pulse Width", pws[osc_idx], 0.0025f, 0.0f, 1.0f)) gui_updated = true;
-                }
+                    if (ImGui::DragFloat("Pulse Width", pws[osc_idx], 0.0025f, 0.0f, 1.0f))
+                        gui_updated = true;
                 break;
-
             case 3:
                 gen_sin_saw_wave(*osc);
                 break;
@@ -396,19 +417,22 @@ int main(int, char**) {
             if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 if (ImGui::Combo("L-Note", (int*)&osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                    *lpis[osc_idx] = freqs[osc->ps.current_note_left];
+                    *gui_left_phase_incs[osc_idx] = freqs[osc->ps.current_note_left];
                     gui_updated = true;
                 }
                 if (ImGui::Combo("R-Note", (int*)&osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
-                    *rpis[osc_idx] = freqs[osc->ps.current_note_right];
+                    *gui_right_phase_incs[osc_idx] = freqs[osc->ps.current_note_right];
                     gui_updated = true;
                 }
-                if (ImGui::DragFloat("Left Phase Increment", lpis[osc_idx], 0.005f, 1, 20, "%f")) gui_updated = true;
-                if (ImGui::DragFloat("Right Phase Increment", rpis[osc_idx], 0.005f, 1, 20, "%f")) gui_updated = true;
+                if (ImGui::DragFloat("Left Phase Increment", gui_left_phase_incs[osc_idx], 0.005f, 1, 20, "%f"))
+                    gui_updated = true;
+                if (ImGui::DragFloat("Right Phase Increment", gui_right_phase_incs[osc_idx], 0.005f, 1, 20, "%f"))
+                    gui_updated = true;
             }
             if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (ImGui::Combo("LFO Waveform", (int*)&lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms))) gui_updated = true;
+                if (ImGui::Combo("LFO Waveform", (int*)&lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms)))
+                    gui_updated = true;
                 switch (lfo->ps.current_waveform) {
                 case 0:
                     gen_saw_wave(*lfo);
@@ -420,7 +444,8 @@ int main(int, char**) {
                     gen_sqr_wave(*lfo, lfo->ps.pulse_width);
                     if (ImGui::CollapsingHeader("Square Settings"))
                     {
-                        if (ImGui::DragFloat("Pulse Width", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f)) gui_updated = true;
+                        if (ImGui::DragFloat("Pulse Width", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f))
+                            gui_updated = true;
                     }
                     break;
 
@@ -428,9 +453,13 @@ int main(int, char**) {
                     gen_sin_saw_wave(*lfo);
                     break;
                 }
-                if (ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable)) gui_updated = true;
-                if (ImGui::DragFloat("LFO Rate", (float*)&lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f")) gui_updated = true;
-                if (ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, -1.0f, 1.0f, "%f")) gui_updated = true;
+                if (ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable))
+                    gui_updated = true;
+                if (ImGui::DragFloat("LFO Rate", (float*)&lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f"))
+                    gui_updated = true;
+                if (ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, -1.0f, 1.0f, "%f"))
+                    gui_updated = true;
+
                 if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
                     lfo->refresh_time = ImGui::GetTime();
                 while (lfo->refresh_time < ImGui::GetTime())
@@ -448,60 +477,75 @@ int main(int, char**) {
             ++osc_idx;
         }
 
+        // mixer window, for adjusting the mix of the oscilators
+        // along with the global amplitude
         if (show_osc_mixer) {
             ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
             const float spacing = 4;
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
-            if (ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            if (ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, ""))
+                gui_updated = true;
             ImGui::SameLine();
-            if (ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            if (ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, ""))
+                gui_updated = true;
             ImGui::SameLine();
-            if (ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            if (ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, ""))
+                gui_updated = true;
             ImGui::SameLine();
             ImGui::SameLine();
-            if (ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            if (ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, ""))
+                gui_updated = true;
             ImGui::PopStyleVar();
             ImGui::End();
         }
 
-        if (ImGui::BeginMainMenuBar())
-        {
-            if (ImGui::BeginMenu("File"))
-            {
-                if (ImGui::MenuItem("Quit", "Alt+F4")) { glfwSetWindowShouldClose(window, 1); }
-                if (ImGui::MenuItem("Save Config", "CTRL+S")) {}
-                if (ImGui::MenuItem("Open Config", "CTRL+O")) {}
+        // the menu bar, currently not really used at all apart from quitting
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Quit", "Alt+F4"))
+                    glfwSetWindowShouldClose(window, 1);
+                if (ImGui::MenuItem("Save Config", "CTRL+S"))
+                {}
+                if (ImGui::MenuItem("Open Config", "CTRL+O"))
+                {}
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu("Windows"))
-            {
-                if (ImGui::MenuItem("Welcome")) { show_intro_window = true; }
-                if (ImGui::MenuItem("Wavetable Viewer", "CTRL+W")) { show_wavetable_window = true; }
-                if (ImGui::MenuItem("Program Editor", "CTRL+E")) { show_synth_settings = true; }
-                if (ImGui::MenuItem("Oscillator A")) { show_oscA = true; }
-                if (ImGui::MenuItem("Oscillator B")) { show_oscB = true; }
-                if (ImGui::MenuItem("Oscillator C")) { show_oscC = true; }
-                if (ImGui::MenuItem("Volume Mixer")) { show_osc_mixer = true; }
+            if (ImGui::BeginMenu("Windows")) {
+                if (ImGui::MenuItem("Welcome"))
+                    show_intro_window = true;
+                if (ImGui::MenuItem("Wavetable Viewer", "CTRL+W"))
+                    show_wavetable_window = true;
+                if (ImGui::MenuItem("Program Editor", "CTRL+E"))
+                    show_synth_settings = true;
+                if (ImGui::MenuItem("Oscillator A"))
+                    show_oscA = true;
+                if (ImGui::MenuItem("Oscillator B"))
+                    show_oscB = true;
+                if (ImGui::MenuItem("Oscillator C"))
+                    show_oscC = true;
+                if (ImGui::MenuItem("Volume Mixer"))
+                    show_osc_mixer = true;
                 ImGui::EndMenu();
             }
-
             ImGui::EndMainMenuBar();
         }
 
+        // only when the GUI has actually been updated
+        // then update the atomic variables in the oscillators
         if (gui_updated) {
-            st.m_oscA.ps.amp = gui_oscA_amp;
-            st.m_oscB.ps.amp = gui_oscB_amp;
-            st.m_oscC.ps.amp = gui_oscC_amp;
-            st.m_oscA.ps.left_phase_inc = gui_oscA_lpi;
-            st.m_oscA.ps.right_phase_inc = gui_oscA_rpi;
-            st.m_oscB.ps.left_phase_inc = gui_oscB_lpi;
-            st.m_oscB.ps.right_phase_inc = gui_oscB_rpi;
-            st.m_oscC.ps.left_phase_inc = gui_oscC_lpi;
-            st.m_oscC.ps.right_phase_inc = gui_oscC_rpi;
-            st.m_oscA.ps.pulse_width = gui_oscA_pw;
-            st.m_oscB.ps.pulse_width = gui_oscB_pw;
-            st.m_oscC.ps.pulse_width = gui_oscC_pw;
-            st.amplitude = gui_global_amp;
+            st.m_oscA.ps.amp.store(gui_oscA_amp);
+            st.m_oscB.ps.amp.store(gui_oscB_amp);
+            st.m_oscC.ps.amp.store(gui_oscC_amp);
+            st.m_oscA.ps.left_phase_inc.store(gui_oscA_lpi);
+            st.m_oscA.ps.right_phase_inc.store(gui_oscA_rpi);
+            st.m_oscB.ps.left_phase_inc.store(gui_oscB_lpi);
+            st.m_oscB.ps.right_phase_inc.store(gui_oscB_rpi);
+            st.m_oscC.ps.left_phase_inc.store(gui_oscC_lpi);
+            st.m_oscC.ps.right_phase_inc.store(gui_oscC_rpi);
+            st.m_oscA.ps.pulse_width.store(gui_oscA_pw);
+            st.m_oscB.ps.pulse_width.store(gui_oscB_pw);
+            st.m_oscC.ps.pulse_width.store(gui_oscC_pw);
+            st.amplitude.store(gui_global_amp);
         }
 
         ImGui::Render();

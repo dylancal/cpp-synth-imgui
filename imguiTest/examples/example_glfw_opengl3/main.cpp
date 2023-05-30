@@ -273,6 +273,7 @@ int main(int, char**) {
     static bool no_bring_to_front = false;
     static bool unsaved_document = false;
 
+    // lalal
     ImGuiWindowFlags window_flags = 0;
     if (no_titlebar)        window_flags |= ImGuiWindowFlags_NoTitleBar;
     if (no_scrollbar)       window_flags |= ImGuiWindowFlags_NoScrollbar;

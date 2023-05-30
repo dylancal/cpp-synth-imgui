@@ -10,17 +10,18 @@ constexpr auto TABLE_SIZE = (872);
 
 struct OscSettings {
     // GENERAL
-    float amp{ 0.33f };
-    float left_phase{ 0 };
-    float right_phase{ 0 };
-    float left_phase_inc{ 1 };
-    float right_phase_inc{ 1 };
-    int current_note_left{ 1 };
-    int current_note_right{ 1 };
-    int current_waveform{ 1 };
+    std::atomic<float> amp { 0.33f };
+    std::atomic<float> left_phase{ 0 };
+    std::atomic<float> right_phase{ 0 };
+    std::atomic<float> left_phase_inc{ 1 };
+    std::atomic<float> right_phase_inc{ 1 };
+    std::atomic<int> current_note_left{ 1 };
+    std::atomic<int> current_note_right{ 1 };
+    std::atomic<int> current_waveform{ 1 };
     // SQR
-    float pulse_width{ 0.5f };
+    std::atomic<float> pulse_width{ 0.5f };
 };
+
 
 struct Wavetable_t {
     OscSettings ps;
@@ -95,5 +96,5 @@ float clip(float amp) {
 }
 
 float half_f_add_one(float amp) {
-    return 0.5 * amp + 1;
+    return 0.5f * amp + 1;
 }

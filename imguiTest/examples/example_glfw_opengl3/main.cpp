@@ -140,7 +140,7 @@ public:
     
 
     std::vector<std::pair<Wavetable_t*, LFO_t*>> oscillators {{ &m_oscA, & m_lfoA}, { &m_oscB, &m_lfoB }, { &m_oscC, &m_lfoC }};
-    float amplitude{ 0.1f };
+    std::atomic<float> amplitude{ 0.1f };
 
 public:
     Synth() {
@@ -248,10 +248,10 @@ private:
             //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
             //};
             //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
-            *out++ = amplitude * (m_oscA.ps.amp * clip(half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_left() +
+            *out++ = amplitude * (m_oscA.ps.amp * (half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_left() +
                                 m_oscB.ps.amp * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_left() +
                                 m_oscC.ps.amp * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_left());
-            *out++ =    amplitude * (m_oscA.ps.amp * clip(half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_right() +
+            *out++ =    amplitude * (m_oscA.ps.amp * (half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_right() +
                                 m_oscB.ps.amp * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_right() +
                                 m_oscC.ps.amp * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_right());
             m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
@@ -336,7 +336,7 @@ int main(int, char**) {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    Synth synth_test;
+    Synth st;
     ScopedPaHandler paInit;
 
     if (paInit.result() != paNoError) {
@@ -346,9 +346,9 @@ int main(int, char**) {
         return 1;
     }
 
-    if (synth_test.open(Pa_GetDefaultOutputDevice()))
+    if (st.open(Pa_GetDefaultOutputDevice()))
     {
-        if (synth_test.start())
+        if (st.start())
         {
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
@@ -408,6 +408,27 @@ int main(int, char**) {
                 freqs[i] = std::powf(2, (float) (i / 12.0));
             }
 
+            float gui_global_amp{ 0.1f };
+
+            float gui_oscA_amp{ 0.33f };
+            float gui_oscB_amp{ 0.33f };
+            float gui_oscC_amp{ 0.33f };
+            std::vector<float*> amps {&gui_oscA_amp, & gui_oscB_amp, & gui_oscC_amp};
+
+            float gui_oscA_lpi{ 1.0f };
+            float gui_oscA_rpi{ 1.0f };
+            float gui_oscB_lpi{ 1.0f };
+            float gui_oscB_rpi{ 1.0f };
+            float gui_oscC_lpi{ 1.0f };
+            float gui_oscC_rpi{ 1.0f };
+            std::vector<float*> lpis {&gui_oscA_lpi, & gui_oscB_lpi, & gui_oscC_lpi};
+            std::vector<float*> rpis {&gui_oscA_rpi, & gui_oscB_rpi, & gui_oscC_rpi};
+
+            float gui_oscA_pw{ 0.5f };
+            float gui_oscB_pw{ 0.5f };
+            float gui_oscC_pw{ 0.5f };
+            std::vector<float*> pws {&gui_oscA_pw, & gui_oscB_pw, & gui_oscC_pw};
+
             SetupImGuiStyle();
 
             while (!glfwWindowShouldClose(window))
@@ -422,7 +443,7 @@ int main(int, char**) {
                     float sum_table_L[TABLE_SIZE]{};
                     for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
                         float tmp = 0;
-                        for (const auto& osc : synth_test.oscillators) {
+                        for (const auto& osc : st.oscillators) {
                             tmp += osc.first->interpolate_at(i*osc.first->ps.left_phase_inc)*osc.first->ps.amp;
                         }
                         sum_table_L[i] = tmp;
@@ -430,7 +451,7 @@ int main(int, char**) {
                     float sum_table_R[TABLE_SIZE]{};
                     for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
                         float tmp = 0;
-                        for (const auto& osc : synth_test.oscillators) {
+                        for (const auto& osc : st.oscillators) {
                             tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
                         }
                         sum_table_R[i] = tmp;
@@ -444,14 +465,14 @@ int main(int, char**) {
                 const char* oscs[3] = { "A", "B", "C" };
                 std::size_t counter = 0;
                 /////////////////////////////////////////////////////////////////
-                for (auto& oscpair : synth_test.oscillators) {
+                for (auto& oscpair : st.oscillators) {
                     Wavetable_t* osc = oscpair.first;
                     LFO_t* lfo = oscpair.second;
                     ImGui::Begin((std::string("Oscillator ") + std::string(oscs[counter])).c_str(), &show_oscA, window_flags);
                     ++counter;
                     ImGui::PlotLines("Waveform", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
                     ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("Waveform", &osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+                    ImGui::Combo("Waveform", (int*) & osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
 
                     switch (osc->ps.current_waveform) {
                     case 0:
@@ -464,7 +485,7 @@ int main(int, char**) {
                         gen_sqr_wave(*osc, osc->ps.pulse_width);
                         if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            ImGui::DragFloat("Pulse Width", &osc->ps.pulse_width, 0.0025f, 0.0f, 1.0f);
+                            ImGui::DragFloat("Pulse Width", pws[counter], 0.0025f, 0.0f, 1.0f);
                         }
                         break;
 
@@ -475,18 +496,18 @@ int main(int, char**) {
 
                     if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        if (ImGui::Combo("L-Note", &osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                        if (ImGui::Combo("L-Note", (int*) & osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
                             osc->ps.left_phase_inc = freqs[osc->ps.current_note_left];
                         }
-                        if (ImGui::Combo("R-Note", &osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                        if (ImGui::Combo("R-Note", (int*) & osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
                             osc->ps.right_phase_inc = freqs[osc->ps.current_note_right];
                         }
-                        ImGui::DragFloat("Left Phase Increment", &osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
-                        ImGui::DragFloat("Right Phase Increment", &osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
+                        ImGui::DragFloat("Left Phase Increment", (float*) & osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
+                        ImGui::DragFloat("Right Phase Increment", (float*) & osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
                     }
                     if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        ImGui::Combo("LFO Waveform", &lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
+                        ImGui::Combo("LFO Waveform", (int*) & lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
                         switch (lfo->ps.current_waveform) {
                         case 0:
                             gen_saw_wave(*lfo);
@@ -498,7 +519,7 @@ int main(int, char**) {
                             gen_sqr_wave(*lfo, lfo->ps.pulse_width);
                             if (ImGui::CollapsingHeader("Square Settings"))
                             {
-                                ImGui::DragFloat("Pulse Width", &lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f);
+                                ImGui::DragFloat("Pulse Width", (float*)& lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f);
                             }
                             break;
 
@@ -507,7 +528,7 @@ int main(int, char**) {
                             break;
                         }
                         ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable);
-                        ImGui::DragFloat("LFO Rate", &lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f");
+                        ImGui::DragFloat("LFO Rate", (float*) & lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f");
                         ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, -1.0f, 1.0f, "%f");
                         if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
                             lfo->refresh_time = ImGui::GetTime();
@@ -530,14 +551,14 @@ int main(int, char**) {
                     ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
                     const float spacing = 4;
                     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
-                    ImGui::VSliderFloat("A", ImVec2(20, 160), &synth_test.m_oscA.ps.amp, 0.0f, 0.5f, "");
+                    ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, "");
                     ImGui::SameLine();
-                    ImGui::VSliderFloat("B", ImVec2(20, 160), &synth_test.m_oscB.ps.amp, 0.0f, 0.5f, "");
+                    ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, "");
                     ImGui::SameLine();
-                    ImGui::VSliderFloat("C", ImVec2(20, 160), &synth_test.m_oscC.ps.amp, 0.0f, 0.5f, "");
+                    ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, "");
                     ImGui::SameLine();
                     ImGui::SameLine();
-                    ImGui::VSliderFloat("OUT", ImVec2(20, 160), &synth_test.amplitude, 0.0f, 0.5f, "");
+                    ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, "");
                     ImGui::PopStyleVar();
                     ImGui::End();
                 }
@@ -566,6 +587,23 @@ int main(int, char**) {
                     ImGui::EndMainMenuBar();
                 }
 
+                st.m_oscA.ps.amp = gui_oscA_amp;
+                st.m_oscB.ps.amp = gui_oscB_amp;
+                st.m_oscC.ps.amp = gui_oscC_amp;
+
+                st.m_oscA.ps.left_phase_inc = gui_oscA_lpi;
+                st.m_oscA.ps.right_phase_inc = gui_oscA_rpi;
+                st.m_oscB.ps.left_phase_inc = gui_oscB_lpi;
+                st.m_oscB.ps.right_phase_inc = gui_oscB_rpi;
+                st.m_oscC.ps.left_phase_inc = gui_oscC_lpi;
+                st.m_oscC.ps.right_phase_inc = gui_oscC_rpi;
+
+                st.m_oscA.ps.pulse_width = gui_oscA_pw;
+                st.m_oscB.ps.pulse_width = gui_oscB_pw;
+                st.m_oscC.ps.pulse_width = gui_oscC_pw;
+
+                st.amplitude = gui_global_amp;
+
                 ImGui::Render();
                 int display_w, display_h;
                 glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -576,7 +614,7 @@ int main(int, char**) {
                 glfwSwapBuffers(window);
             }
         }
-        synth_test.close();
+        st.close();
     }
 
     ImGui_ImplOpenGL3_Shutdown();

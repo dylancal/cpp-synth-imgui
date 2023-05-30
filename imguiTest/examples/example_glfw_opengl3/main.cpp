@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <string>
 #include <utility>
+#include <memory>
 
 #include "wavetable.h"
 #include "imgui_includes.h"
@@ -65,11 +66,11 @@ public:
         outputParameters.channelCount = 2;
         outputParameters.sampleFormat = paFloat32;
         outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
-        outputParameters.hostApiSpecificStreamInfo = NULL;
+        outputParameters.hostApiSpecificStreamInfo = nullptr;
 
         PaError err = Pa_OpenStream(
             &stream,
-            NULL, 
+            nullptr, 
             &outputParameters,
             SAMPLE_RATE,
             paFramesPerBufferUnspecified,
@@ -132,34 +133,20 @@ private:
         (void)statusFlags;
         (void)inputBuffer;
 
-        for (unsigned long i = 0; i < framesPerBuffer; i++) {
-            //auto updatePhases = [&out](Wavetable_t* wt) {
-            //    *out++ = wt->ps.amp * wt->interpolate_at(wt->ps.left_phase);
-            //    *out++ = wt->ps.amp * wt->interpolate_at(wt->ps.right_phase);
-            //    wt->ps.left_phase += wt->ps.left_phase_inc;
-            //    if (wt->ps.left_phase >= TABLE_SIZE) wt->ps.left_phase -= TABLE_SIZE;
-            //    wt->ps.right_phase += wt->ps.right_phase_inc;
-            //    if (wt->ps.right_phase >= TABLE_SIZE) wt->ps.right_phase -= TABLE_SIZE;
-            //};
-            //std::for_each(oscillators.begin(), oscillators.end(), updatePhases);
-            *out++ = amplitude * (m_oscA.ps.amp * (half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_left() +
-                                m_oscB.ps.amp * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_left() +
-                                m_oscC.ps.amp * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_left());
-            *out++ =    amplitude * (m_oscA.ps.amp * (half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_right() +
-                                m_oscB.ps.amp * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_right() +
-                                m_oscC.ps.amp * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_right());
-            m_oscA.ps.left_phase += m_oscA.ps.left_phase_inc;
-            m_oscB.ps.left_phase += m_oscB.ps.left_phase_inc;
-            m_oscC.ps.left_phase += m_oscC.ps.left_phase_inc;
-            if (m_oscA.ps.left_phase >= TABLE_SIZE) m_oscA.ps.left_phase -= TABLE_SIZE;
-            if (m_oscB.ps.left_phase >= TABLE_SIZE) m_oscB.ps.left_phase -= TABLE_SIZE;
-            if (m_oscC.ps.left_phase >= TABLE_SIZE) m_oscC.ps.left_phase -= TABLE_SIZE;
-            m_oscA.ps.right_phase += m_oscA.ps.right_phase_inc;
-            m_oscB.ps.right_phase += m_oscB.ps.right_phase_inc;
-            m_oscC.ps.right_phase += m_oscC.ps.right_phase_inc;
-            if (m_oscA.ps.right_phase >= TABLE_SIZE) m_oscA.ps.right_phase -= TABLE_SIZE;
-            if (m_oscB.ps.right_phase >= TABLE_SIZE) m_oscB.ps.right_phase -= TABLE_SIZE;
-            if (m_oscC.ps.right_phase >= TABLE_SIZE) m_oscC.ps.right_phase -= TABLE_SIZE;
+        for (std::size_t i = 0; i < framesPerBuffer; i++) {
+            *out++ = amplitude.load(std::memory_order_relaxed) * (m_oscA.ps.amp.load(std::memory_order_relaxed) * (half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_left() +
+                                m_oscB.ps.amp.load(std::memory_order_relaxed) * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_left() +
+                                m_oscC.ps.amp.load(std::memory_order_relaxed) * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_left());
+            *out++ = amplitude.load(std::memory_order_relaxed) * (m_oscA.ps.amp.load(std::memory_order_relaxed) * (half_f_add_one(2 * m_lfoA.lfo_depth * m_lfoA.interpolate())) * m_oscA.interpolate_right() +
+                                m_oscB.ps.amp.load(std::memory_order_relaxed) * half_f_add_one(2 * m_lfoB.lfo_depth * m_lfoB.interpolate()) * m_oscB.interpolate_right() +
+                                m_oscC.ps.amp.load(std::memory_order_relaxed) * half_f_add_one(2 * m_lfoC.lfo_depth * m_lfoC.interpolate()) * m_oscC.interpolate_right());
+
+            for (std::size_t j = 0; j < 3; ++j) {
+                oscillators[j].first->ps.left_phase += oscillators[j].first->ps.left_phase_inc;
+                if (oscillators[j].first->ps.left_phase >= TABLE_SIZE) oscillators[j].first->ps.left_phase -= TABLE_SIZE;
+                oscillators[j].first->ps.right_phase += oscillators[j].first->ps.right_phase_inc;
+                if (oscillators[j].first->ps.right_phase >= TABLE_SIZE) oscillators[j].first->ps.right_phase -= TABLE_SIZE;
+            }
         }
         return paContinue;
     }
@@ -375,8 +362,8 @@ int main(int, char**) {
                 sum_table_R[i] = tmp;
             }
 
-            ImGui::PlotLines("Wavetable Visualisation, L", sum_table_L, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-            ImGui::PlotLines("Wavetable Visualisation, R", sum_table_R, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::PlotLines("Wavetable Visualisation, L", sum_table_L, TABLE_SIZE, 0, nullptr, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::PlotLines("Wavetable Visualisation, R", sum_table_R, TABLE_SIZE, 0, nullptr, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
             ImGui::End();
         }
 

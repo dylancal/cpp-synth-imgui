@@ -1,128 +1,22 @@
-// Dear ImGui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
-
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "wavetable.h"
-#include <stdio.h>
 #define GL_SILENCE_DEPRECATION
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h>
-
 #include <stdio.h>
 #include <cmath>
 #include "portaudio.h"
-
-#include <thread>
-#include <chrono>
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <utility>
 
+#include "wavetable.h"
+#include "imgui_includes.h"
+
 constexpr auto NUM_SECONDS = (5);
 constexpr auto SAMPLE_RATE = (48000);
-
-
-
-void SetupImGuiStyle()
-{
-    // Cherry style by r-lyeh from ImThemes
-    ImGuiStyle& style = ImGui::GetStyle();
-
-    style.Alpha = 1.0f;
-    style.DisabledAlpha = 0.6000000238418579f;
-    style.WindowPadding = ImVec2(6.0f, 3.0f);
-    style.WindowRounding = 0.0f;
-    style.WindowBorderSize = 1.0f;
-    style.WindowMinSize = ImVec2(32.0f, 32.0f);
-    style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
-    style.WindowMenuButtonPosition = ImGuiDir_Left;
-    style.ChildRounding = 0.0f;
-    style.ChildBorderSize = 1.0f;
-    style.PopupRounding = 0.0f;
-    style.PopupBorderSize = 1.0f;
-    style.FramePadding = ImVec2(5.0f, 1.0f);
-    style.FrameRounding = 3.0f;
-    style.FrameBorderSize = 1.0f;
-    style.ItemSpacing = ImVec2(7.0f, 1.0f);
-    style.ItemInnerSpacing = ImVec2(1.0f, 1.0f);
-    style.CellPadding = ImVec2(4.0f, 2.0f);
-    style.IndentSpacing = 6.0f;
-    style.ColumnsMinSpacing = 6.0f;
-    style.ScrollbarSize = 13.0f;
-    style.ScrollbarRounding = 16.0f;
-    style.GrabMinSize = 20.0f;
-    style.GrabRounding = 2.0f;
-    style.TabRounding = 4.0f;
-    style.TabBorderSize = 1.0f;
-    style.TabMinWidthForCloseButton = 0.0f;
-    style.ColorButtonPosition = ImGuiDir_Right;
-    style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
-    style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
-
-    style.Colors[ImGuiCol_Text] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.8799999952316284f);
-    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.2800000011920929f);
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.1294117718935013f, 0.1372549086809158f, 0.168627455830574f, 1.0f);
-    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 0.8999999761581421f);
-    style.Colors[ImGuiCol_Border] = ImVec4(0.5372549295425415f, 0.47843137383461f, 0.2549019753932953f, 0.1620000004768372f);
-    style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-    style.Colors[ImGuiCol_FrameBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
-    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7799999713897705f);
-    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
-    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.2313725501298904f, 0.2000000029802322f, 0.2705882489681244f, 1.0f);
-    style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.501960813999176f, 0.07450980693101883f, 0.2549019753932953f, 1.0f);
-    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 0.75f);
-    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 0.4699999988079071f);
-    style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.2000000029802322f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
-    style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.08627451211214066f, 0.1490196138620377f, 0.1568627506494522f, 1.0f);
-    style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7799999713897705f);
-    style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
-    style.Colors[ImGuiCol_CheckMark] = ImVec4(0.7098039388656616f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
-    style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.4666666686534882f, 0.7686274647712708f, 0.8274509906768799f, 0.1400000005960464f);
-    style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.7098039388656616f, 0.2196078449487686f, 0.2666666805744171f, 1.0f);
-    style.Colors[ImGuiCol_Button] = ImVec4(0.4666666686534882f, 0.7686274647712708f, 0.8274509906768799f, 0.1400000005960464f);
-    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.8600000143051147f);
-    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
-    style.Colors[ImGuiCol_Header] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7599999904632568f);
-    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.8600000143051147f);
-    style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.501960813999176f, 0.07450980693101883f, 0.2549019753932953f, 1.0f);
-    style.Colors[ImGuiCol_Separator] = ImVec4(0.4274509847164154f, 0.4274509847164154f, 0.4980392158031464f, 0.5f);
-    style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.09803921729326248f, 0.4000000059604645f, 0.7490196228027344f, 0.7799999713897705f);
-    style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.09803921729326248f, 0.4000000059604645f, 0.7490196228027344f, 1.0f);
-    style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.4666666686534882f, 0.7686274647712708f, 0.8274509906768799f, 0.03999999910593033f);
-    style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.7799999713897705f);
-    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
-    style.Colors[ImGuiCol_Tab] = ImVec4(0.1764705926179886f, 0.3490196168422699f, 0.5764706134796143f, 0.8619999885559082f);
-    style.Colors[ImGuiCol_TabHovered] = ImVec4(0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 0.800000011920929f);
-    style.Colors[ImGuiCol_TabActive] = ImVec4(0.196078434586525f, 0.407843142747879f, 0.6784313917160034f, 1.0f);
-    style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.06666667014360428f, 0.1019607856869698f, 0.1450980454683304f, 0.9724000096321106f);
-    style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.1333333402872086f, 0.2588235437870026f, 0.4235294163227081f, 1.0f);
-    style.Colors[ImGuiCol_PlotLines] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.6299999952316284f);
-    style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
-    style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.8588235378265381f, 0.929411768913269f, 0.886274516582489f, 0.6299999952316284f);
-    style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 1.0f);
-    style.Colors[ImGuiCol_TableHeaderBg] = ImVec4(0.1882352977991104f, 0.1882352977991104f, 0.2000000029802322f, 1.0f);
-    style.Colors[ImGuiCol_TableBorderStrong] = ImVec4(0.3098039329051971f, 0.3098039329051971f, 0.3490196168422699f, 1.0f);
-    style.Colors[ImGuiCol_TableBorderLight] = ImVec4(0.2274509817361832f, 0.2274509817361832f, 0.2470588237047195f, 1.0f);
-    style.Colors[ImGuiCol_TableRowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-    style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.05999999865889549f);
-    style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.4549019634723663f, 0.196078434586525f, 0.2980392277240753f, 0.4300000071525574f);
-    style.Colors[ImGuiCol_DragDropTarget] = ImVec4(1.0f, 1.0f, 0.0f, 0.8999999761581421f);
-    style.Colors[ImGuiCol_NavHighlight] = ImVec4(0.2588235437870026f, 0.5882353186607361f, 0.9764705896377563f, 1.0f);
-    style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.699999988079071f);
-    style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
-    style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.3499999940395355f);
-    //style.Alpha = 0.5f;
-    style.ScaleAllSizes(3);
-}
 
 class Synth
 {
@@ -307,12 +201,13 @@ private:
     PaError _result;
 };
 
-static void glfw_error_callback(int error, const char* description)
+void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
 int main(int, char**) {
+    // useful to create some of these here for use in functions later
     Wavetable_t saw_wave;
     Wavetable_t sin_wave;
     Wavetable_t sqr_wave;
@@ -320,22 +215,21 @@ int main(int, char**) {
     gen_sin_wave(sin_wave);
     gen_sqr_wave(sqr_wave, 0.5);
 
+    // start setting up glfw
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;
-
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
-
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Lookup-table Synthesizer - Dylan Callaghan", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Lookup-table Synthesizer", nullptr, nullptr);
     if (window == nullptr)
         return 1;
-
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
+    // create our synth object and audio handler
     Synth st;
     ScopedPaHandler paInit;
 
@@ -346,276 +240,282 @@ int main(int, char**) {
         return 1;
     }
 
-    if (st.open(Pa_GetDefaultOutputDevice()))
+    if (!st.open(Pa_GetDefaultOutputDevice()))
     {
-        if (st.start())
-        {
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            ImGuiIO& io = ImGui::GetIO(); (void)io;
-            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-            io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-            ImGui::StyleColorsDark();
-
-            ImGui_ImplGlfw_InitForOpenGL(window, true);
-            ImGui_ImplOpenGL3_Init(glsl_version);
-
-            // Our state
-            bool show_intro_window = true;
-            bool show_wavetable_window = true;
-            bool show_synth_settings = true;
-            bool show_oscA = true;
-            bool show_oscB = true;
-            bool show_oscC = true;
-            bool show_osc_mixer = true;
-            ImVec4 clear_color = ImVec4(0.20f, 0.09f, 0.14f, 0.95f);
-
-            static bool no_titlebar = false;
-            static bool no_scrollbar = false;
-            static bool no_menu = true;
-            static bool no_move = false;
-            static bool no_resize = false;
-            static bool no_collapse = false;
-            static bool no_close = false;
-            static bool no_nav = false;
-            static bool no_background = false;
-            static bool no_bring_to_front = false;
-            static bool unsaved_document = false;
-
-            ImGuiWindowFlags window_flags = 0;
-            if (no_titlebar)        window_flags |= ImGuiWindowFlags_NoTitleBar;
-            if (no_scrollbar)       window_flags |= ImGuiWindowFlags_NoScrollbar;
-            if (!no_menu)           window_flags |= ImGuiWindowFlags_MenuBar;
-            if (no_move)            window_flags |= ImGuiWindowFlags_NoMove;
-            if (no_resize)          window_flags |= ImGuiWindowFlags_NoResize;
-            if (no_collapse)        window_flags |= ImGuiWindowFlags_NoCollapse;
-            if (no_nav)             window_flags |= ImGuiWindowFlags_NoNav;
-            if (no_background)      window_flags |= ImGuiWindowFlags_NoBackground;
-            if (no_bring_to_front)  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
-            if (unsaved_document)   window_flags |= ImGuiWindowFlags_UnsavedDocument;
-
-            const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw" };
-            const char* notes[] = { "A0", "A#0", "B0",
-                "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
-                "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
-                "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
-                "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
-                "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5" };
-
-            float freqs[72] { };
-            for (size_t i = 0; i < 72; ++i) {
-                freqs[i] = std::powf(2, (float) (i / 12.0));
-            }
-
-            float gui_global_amp{ 0.1f };
-
-            float gui_oscA_amp{ 0.33f };
-            float gui_oscB_amp{ 0.33f };
-            float gui_oscC_amp{ 0.33f };
-            std::vector<float*> amps {&gui_oscA_amp, & gui_oscB_amp, & gui_oscC_amp};
-
-            float gui_oscA_lpi{ 1.0f };
-            float gui_oscA_rpi{ 1.0f };
-            float gui_oscB_lpi{ 1.0f };
-            float gui_oscB_rpi{ 1.0f };
-            float gui_oscC_lpi{ 1.0f };
-            float gui_oscC_rpi{ 1.0f };
-            std::vector<float*> lpis {&gui_oscA_lpi, & gui_oscB_lpi, & gui_oscC_lpi};
-            std::vector<float*> rpis {&gui_oscA_rpi, & gui_oscB_rpi, & gui_oscC_rpi};
-
-            float gui_oscA_pw{ 0.5f };
-            float gui_oscB_pw{ 0.5f };
-            float gui_oscC_pw{ 0.5f };
-            std::vector<float*> pws {&gui_oscA_pw, & gui_oscB_pw, & gui_oscC_pw};
-
-            SetupImGuiStyle();
-
-            while (!glfwWindowShouldClose(window))
-            {
-                glfwPollEvents();
-                ImGui_ImplOpenGL3_NewFrame();
-                ImGui_ImplGlfw_NewFrame();
-                ImGui::NewFrame();
-
-                if (show_wavetable_window) {
-                    ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
-                    float sum_table_L[TABLE_SIZE]{};
-                    for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
-                        float tmp = 0;
-                        for (const auto& osc : st.oscillators) {
-                            tmp += osc.first->interpolate_at(i*osc.first->ps.left_phase_inc)*osc.first->ps.amp;
-                        }
-                        sum_table_L[i] = tmp;
-                    }
-                    float sum_table_R[TABLE_SIZE]{};
-                    for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
-                        float tmp = 0;
-                        for (const auto& osc : st.oscillators) {
-                            tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
-                        }
-                        sum_table_R[i] = tmp;
-                    }
-                    
-                    ImGui::PlotLines("Wavetable Visualisation, L", sum_table_L, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-                    ImGui::PlotLines("Wavetable Visualisation, R", sum_table_R, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-                    ImGui::End();
-                }
-
-                const char* oscs[3] = { "A", "B", "C" };
-                std::size_t counter = 0;
-                /////////////////////////////////////////////////////////////////
-                for (auto& oscpair : st.oscillators) {
-                    Wavetable_t* osc = oscpair.first;
-                    LFO_t* lfo = oscpair.second;
-                    ImGui::Begin((std::string("Oscillator ") + std::string(oscs[counter])).c_str(), &show_oscA, window_flags);
-                    ++counter;
-                    ImGui::PlotLines("Waveform", osc->table, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-                    ImGui::SeparatorText("Waveform Selector");
-                    ImGui::Combo("Waveform", (int*) & osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
-
-                    switch (osc->ps.current_waveform) {
-                    case 0:
-                        gen_saw_wave(*osc);
-                        break;
-                    case 1:
-                        gen_sin_wave(*osc);
-                        break;
-                    case 2:
-                        gen_sqr_wave(*osc, osc->ps.pulse_width);
-                        if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                        {
-                            ImGui::DragFloat("Pulse Width", pws[counter], 0.0025f, 0.0f, 1.0f);
-                        }
-                        break;
-
-                    case 3:
-                        gen_sin_saw_wave(*osc);
-                        break;
-                    }
-
-                    if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                    {
-                        if (ImGui::Combo("L-Note", (int*) & osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                            osc->ps.left_phase_inc = freqs[osc->ps.current_note_left];
-                        }
-                        if (ImGui::Combo("R-Note", (int*) & osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
-                            osc->ps.right_phase_inc = freqs[osc->ps.current_note_right];
-                        }
-                        ImGui::DragFloat("Left Phase Increment", (float*) & osc->ps.left_phase_inc, 0.005f, 1, 20, "%f");
-                        ImGui::DragFloat("Right Phase Increment", (float*) & osc->ps.right_phase_inc, 0.005f, 1, 20, "%f");
-                    }
-                    if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
-                    {
-                        ImGui::Combo("LFO Waveform", (int*) & lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms));
-                        switch (lfo->ps.current_waveform) {
-                        case 0:
-                            gen_saw_wave(*lfo);
-                            break;
-                        case 1:
-                            gen_sin_wave(*lfo);
-                            break;
-                        case 2:
-                            gen_sqr_wave(*lfo, lfo->ps.pulse_width);
-                            if (ImGui::CollapsingHeader("Square Settings"))
-                            {
-                                ImGui::DragFloat("Pulse Width", (float*)& lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f);
-                            }
-                            break;
-
-                        case 3:
-                            gen_sin_saw_wave(*lfo);
-                            break;
-                        }
-                        ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable);
-                        ImGui::DragFloat("LFO Rate", (float*) & lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f");
-                        ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, -1.0f, 1.0f, "%f");
-                        if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
-                            lfo->refresh_time = ImGui::GetTime();
-                        while (lfo->refresh_time < ImGui::GetTime())
-                        {
-                            lfo->values[lfo->values_offset] = lfo->lfo_depth * lfo->interpolate_left();
-                            lfo->values_offset = (lfo->values_offset + 1) % IM_ARRAYSIZE(lfo->values);
-                            lfo->ps.left_phase += lfo->ps.left_phase_inc;
-                            if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;
-                            if (!lfo->lfo_enable) lfo->ps.left_phase = 0;
-                            lfo->refresh_time += 0.1f / 60.0f;
-                        }
-                        ImGui::PlotLines("Lines", lfo->values, IM_ARRAYSIZE(lfo->values), lfo->values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
-                    }
-                   
-                    ImGui::End();
-                }
-
-                if (show_osc_mixer) {
-                    ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
-                    const float spacing = 4;
-                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
-                    ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, "");
-                    ImGui::SameLine();
-                    ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, "");
-                    ImGui::SameLine();
-                    ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, "");
-                    ImGui::SameLine();
-                    ImGui::SameLine();
-                    ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, "");
-                    ImGui::PopStyleVar();
-                    ImGui::End();
-                }
-
-                if (ImGui::BeginMainMenuBar())
-                {
-                    if (ImGui::BeginMenu("File"))
-                    {
-                        if (ImGui::MenuItem("Quit", "Alt+F4")) { glfwSetWindowShouldClose(window, 1); }
-                        if (ImGui::MenuItem("Save Config", "CTRL+S")) {}
-                        if (ImGui::MenuItem("Open Config", "CTRL+O")) {}
-                        ImGui::EndMenu();
-                    }
-                    if (ImGui::BeginMenu("Windows"))
-                    {
-                        if (ImGui::MenuItem("Welcome")) { show_intro_window = true; }
-                        if (ImGui::MenuItem("Wavetable Viewer", "CTRL+W")) { show_wavetable_window = true; }
-                        if (ImGui::MenuItem("Program Editor", "CTRL+E")) { show_synth_settings = true; }
-                        if (ImGui::MenuItem("Oscillator A")) { show_oscA = true; }
-                        if (ImGui::MenuItem("Oscillator B")) { show_oscB = true; }
-                        if (ImGui::MenuItem("Oscillator C")) { show_oscC = true; }
-                        if (ImGui::MenuItem("Volume Mixer")) { show_osc_mixer = true; }
-                        ImGui::EndMenu();
-                    }
-
-                    ImGui::EndMainMenuBar();
-                }
-
-                st.m_oscA.ps.amp = gui_oscA_amp;
-                st.m_oscB.ps.amp = gui_oscB_amp;
-                st.m_oscC.ps.amp = gui_oscC_amp;
-
-                st.m_oscA.ps.left_phase_inc = gui_oscA_lpi;
-                st.m_oscA.ps.right_phase_inc = gui_oscA_rpi;
-                st.m_oscB.ps.left_phase_inc = gui_oscB_lpi;
-                st.m_oscB.ps.right_phase_inc = gui_oscB_rpi;
-                st.m_oscC.ps.left_phase_inc = gui_oscC_lpi;
-                st.m_oscC.ps.right_phase_inc = gui_oscC_rpi;
-
-                st.m_oscA.ps.pulse_width = gui_oscA_pw;
-                st.m_oscB.ps.pulse_width = gui_oscB_pw;
-                st.m_oscC.ps.pulse_width = gui_oscC_pw;
-
-                st.amplitude = gui_global_amp;
-
-                ImGui::Render();
-                int display_w, display_h;
-                glfwGetFramebufferSize(window, &display_w, &display_h);
-                glViewport(0, 0, display_w, display_h);
-                glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-                glClear(GL_COLOR_BUFFER_BIT);
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-                glfwSwapBuffers(window);
-            }
-        }
-        st.close();
+        
     }
+    if (!st.start())
+    {
+
+    }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+
+    // Our state
+    bool show_intro_window = true;
+    bool show_wavetable_window = true;
+    bool show_synth_settings = true;
+    bool show_oscA = true;
+    bool show_oscB = true;
+    bool show_oscC = true;
+    bool show_osc_mixer = true;
+    ImVec4 clear_color = ImVec4(0.20f, 0.09f, 0.14f, 0.95f);
+
+    static bool no_titlebar = false;
+    static bool no_scrollbar = false;
+    static bool no_menu = true;
+    static bool no_move = false;
+    static bool no_resize = false;
+    static bool no_collapse = false;
+    static bool no_close = false;
+    static bool no_nav = false;
+    static bool no_background = false;
+    static bool no_bring_to_front = false;
+    static bool unsaved_document = false;
+
+    ImGuiWindowFlags window_flags = 0;
+    if (no_titlebar)        window_flags |= ImGuiWindowFlags_NoTitleBar;
+    if (no_scrollbar)       window_flags |= ImGuiWindowFlags_NoScrollbar;
+    if (!no_menu)           window_flags |= ImGuiWindowFlags_MenuBar;
+    if (no_move)            window_flags |= ImGuiWindowFlags_NoMove;
+    if (no_resize)          window_flags |= ImGuiWindowFlags_NoResize;
+    if (no_collapse)        window_flags |= ImGuiWindowFlags_NoCollapse;
+    if (no_nav)             window_flags |= ImGuiWindowFlags_NoNav;
+    if (no_background)      window_flags |= ImGuiWindowFlags_NoBackground;
+    if (no_bring_to_front)  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+    if (unsaved_document)   window_flags |= ImGuiWindowFlags_UnsavedDocument;
+
+    const char* waveforms[] = { "Sawtooth", "Sine", "Square", "Supersaw" };
+    const char* notes[] = { "A0", "A#0", "B0",
+        "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
+        "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+        "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+        "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+        "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5" };
+
+    float freqs[72]{ };
+    for (size_t i = 0; i < 72; ++i) {
+        freqs[i] = std::powf(2, (float)(i / 12.0));
+    }
+
+    float gui_global_amp{ 0.1f };
+
+    float gui_oscA_amp{ 0.33f };
+    float gui_oscB_amp{ 0.33f };
+    float gui_oscC_amp{ 0.33f };
+    std::vector<float*> amps {&gui_oscA_amp, & gui_oscB_amp, & gui_oscC_amp};
+
+    float gui_oscA_lpi{ 1.0f };
+    float gui_oscA_rpi{ 1.0f };
+    float gui_oscB_lpi{ 1.0f };
+    float gui_oscB_rpi{ 1.0f };
+    float gui_oscC_lpi{ 1.0f };
+    float gui_oscC_rpi{ 1.0f };
+    std::vector<float*> lpis {&gui_oscA_lpi, & gui_oscB_lpi, & gui_oscC_lpi};
+    std::vector<float*> rpis {&gui_oscA_rpi, & gui_oscB_rpi, & gui_oscC_rpi};
+
+    float gui_oscA_pw{ 0.5f };
+    float gui_oscB_pw{ 0.5f };
+    float gui_oscC_pw{ 0.5f };
+    std::vector<float*> pws {&gui_oscA_pw, & gui_oscB_pw, & gui_oscC_pw};
+
+    std::atomic<bool> gui_updated { false };
+
+    SetupImGuiStyle();
+
+    while (!glfwWindowShouldClose(window))
+    {
+        glfwPollEvents();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        if (show_wavetable_window) {
+            ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
+            float sum_table_L[TABLE_SIZE]{};
+            for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
+                float tmp = 0;
+                for (const auto& osc : st.oscillators) {
+                    tmp += osc.first->interpolate_at(i * osc.first->ps.left_phase_inc) * osc.first->ps.amp;
+                }
+                sum_table_L[i] = tmp;
+            }
+            float sum_table_R[TABLE_SIZE]{};
+            for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
+                float tmp = 0;
+                for (const auto& osc : st.oscillators) {
+                    tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
+                }
+                sum_table_R[i] = tmp;
+            }
+
+            ImGui::PlotLines("Wavetable Visualisation, L", sum_table_L, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::PlotLines("Wavetable Visualisation, R", sum_table_R, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::End();
+        }
+
+        const char* oscs[3] = { "A", "B", "C" };
+        std::size_t osc_idx = 0;
+        /////////////////////////////////////////////////////////////////
+        for (auto& oscpair : st.oscillators) {
+            Wavetable_t* osc = oscpair.first;
+            LFO_t* lfo = oscpair.second;
+            ImGui::Begin((std::string("Oscillator ") + std::string(oscs[osc_idx])).c_str(), &show_oscA, window_flags);
+            ImGui::PlotLines("Waveform", osc->table, TABLE_SIZE, 0, nullptr, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::SeparatorText("Waveform Selector");
+            if (ImGui::Combo("Waveform", (int*)&osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms))) gui_updated = true;
+
+            switch (osc->ps.current_waveform) {
+            case 0:
+                gen_saw_wave(*osc);
+                break;
+            case 1:
+                gen_sin_wave(*osc);
+                break;
+            case 2:
+                gen_sqr_wave(*osc, osc->ps.pulse_width);
+                if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
+                {
+                    if (ImGui::DragFloat("Pulse Width", pws[osc_idx], 0.0025f, 0.0f, 1.0f)) gui_updated = true;
+                }
+                break;
+
+            case 3:
+                gen_sin_saw_wave(*osc);
+                break;
+            }
+            if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                if (ImGui::Combo("L-Note", (int*)&osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                    *lpis[osc_idx] = freqs[osc->ps.current_note_left];
+                    gui_updated = true;
+                }
+                if (ImGui::Combo("R-Note", (int*)&osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                    *rpis[osc_idx] = freqs[osc->ps.current_note_right];
+                    gui_updated = true;
+                }
+                if (ImGui::DragFloat("Left Phase Increment", lpis[osc_idx], 0.005f, 1, 20, "%f")) gui_updated = true;
+                if (ImGui::DragFloat("Right Phase Increment", rpis[osc_idx], 0.005f, 1, 20, "%f")) gui_updated = true;
+            }
+            if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                if (ImGui::Combo("LFO Waveform", (int*)&lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms))) gui_updated = true;
+                switch (lfo->ps.current_waveform) {
+                case 0:
+                    gen_saw_wave(*lfo);
+                    break;
+                case 1:
+                    gen_sin_wave(*lfo);
+                    break;
+                case 2:
+                    gen_sqr_wave(*lfo, lfo->ps.pulse_width);
+                    if (ImGui::CollapsingHeader("Square Settings"))
+                    {
+                        if (ImGui::DragFloat("Pulse Width", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f)) gui_updated = true;
+                    }
+                    break;
+
+                case 3:
+                    gen_sin_saw_wave(*lfo);
+                    break;
+                }
+                if (ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable)) gui_updated = true;
+                if (ImGui::DragFloat("LFO Rate", (float*)&lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f")) gui_updated = true;
+                if (ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_depth, 0.005f, -1.0f, 1.0f, "%f")) gui_updated = true;
+                if (/*!lfo->lfo_enable ||*/ lfo->refresh_time == 0.0)
+                    lfo->refresh_time = ImGui::GetTime();
+                while (lfo->refresh_time < ImGui::GetTime())
+                {
+                    lfo->values[lfo->values_offset] = lfo->lfo_depth * lfo->interpolate_left();
+                    lfo->values_offset = (lfo->values_offset + 1) % IM_ARRAYSIZE(lfo->values);
+                    lfo->ps.left_phase += lfo->ps.left_phase_inc;
+                    if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;
+                    if (!lfo->lfo_enable) lfo->ps.left_phase = 0;
+                    lfo->refresh_time += 0.1f / 60.0f;
+                }
+                ImGui::PlotLines("Lines", lfo->values, IM_ARRAYSIZE(lfo->values), lfo->values_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
+            }
+            ImGui::End();
+            ++osc_idx;
+        }
+
+        if (show_osc_mixer) {
+            ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
+            const float spacing = 4;
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
+            if (ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            ImGui::SameLine();
+            if (ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            ImGui::SameLine();
+            if (ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            ImGui::SameLine();
+            ImGui::SameLine();
+            if (ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, "")) gui_updated = true;
+            ImGui::PopStyleVar();
+            ImGui::End();
+        }
+
+        if (ImGui::BeginMainMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Quit", "Alt+F4")) { glfwSetWindowShouldClose(window, 1); }
+                if (ImGui::MenuItem("Save Config", "CTRL+S")) {}
+                if (ImGui::MenuItem("Open Config", "CTRL+O")) {}
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Windows"))
+            {
+                if (ImGui::MenuItem("Welcome")) { show_intro_window = true; }
+                if (ImGui::MenuItem("Wavetable Viewer", "CTRL+W")) { show_wavetable_window = true; }
+                if (ImGui::MenuItem("Program Editor", "CTRL+E")) { show_synth_settings = true; }
+                if (ImGui::MenuItem("Oscillator A")) { show_oscA = true; }
+                if (ImGui::MenuItem("Oscillator B")) { show_oscB = true; }
+                if (ImGui::MenuItem("Oscillator C")) { show_oscC = true; }
+                if (ImGui::MenuItem("Volume Mixer")) { show_osc_mixer = true; }
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMainMenuBar();
+        }
+
+        if (gui_updated) {
+            st.m_oscA.ps.amp = gui_oscA_amp;
+            st.m_oscB.ps.amp = gui_oscB_amp;
+            st.m_oscC.ps.amp = gui_oscC_amp;
+            st.m_oscA.ps.left_phase_inc = gui_oscA_lpi;
+            st.m_oscA.ps.right_phase_inc = gui_oscA_rpi;
+            st.m_oscB.ps.left_phase_inc = gui_oscB_lpi;
+            st.m_oscB.ps.right_phase_inc = gui_oscB_rpi;
+            st.m_oscC.ps.left_phase_inc = gui_oscC_lpi;
+            st.m_oscC.ps.right_phase_inc = gui_oscC_rpi;
+            st.m_oscA.ps.pulse_width = gui_oscA_pw;
+            st.m_oscB.ps.pulse_width = gui_oscB_pw;
+            st.m_oscC.ps.pulse_width = gui_oscC_pw;
+            st.amplitude = gui_global_amp;
+        }
+
+        ImGui::Render();
+        int display_w, display_h;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window);
+        gui_updated = false;
+    }
+
+    st.close();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

@@ -66,6 +66,9 @@
     <ClInclude Include="wavetable.h">
       <Filter>main\include</Filter>
     </ClInclude>
+    <ClInclude Include="imgui_includes.h">
+      <Filter>main\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.txt" />

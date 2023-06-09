@@ -166,6 +166,7 @@
     <ClCompile Include="..\..\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="wavetable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="..\..\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="..\..\backends\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="imgui_includes.h" />
+    <ClInclude Include="low_pass_filter.h" />
     <ClInclude Include="wavetable.h" />
   </ItemGroup>
   <ItemGroup>

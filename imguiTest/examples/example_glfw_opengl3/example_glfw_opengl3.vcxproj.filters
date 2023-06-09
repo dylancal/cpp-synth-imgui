@@ -43,6 +43,9 @@
     <ClCompile Include="main.cpp">
       <Filter>main</Filter>
     </ClCompile>
+    <ClCompile Include="wavetable.cpp">
+      <Filter>main\sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imconfig.h">
@@ -67,6 +70,9 @@
       <Filter>main\include</Filter>
     </ClInclude>
     <ClInclude Include="imgui_includes.h">
+      <Filter>main\include</Filter>
+    </ClInclude>
+    <ClInclude Include="low_pass_filter.h">
       <Filter>main\include</Filter>
     </ClInclude>
   </ItemGroup>

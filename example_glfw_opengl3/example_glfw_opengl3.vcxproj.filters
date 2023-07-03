@@ -22,12 +22,13 @@
     <ClCompile Include="..\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="wavetable.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="Synth.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">
@@ -61,6 +62,9 @@
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="wavetable.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="Synth.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

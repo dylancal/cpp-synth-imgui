@@ -5,22 +5,15 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <cmath>
-#include "portaudio.h"
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <utility>
 #include <thread>
-
 #include "wavetable.h"
 #include "imgui_includes.h"
-
-double CosineInterpolate(double y1, double y2, double mu) {
-    double mu2;
-    mu2 = (1 - cos(mu * M_PI)) / 2;
-    return(y1 * (1 - mu2) + y2 * mu2);
-}
+#include "Synth.h"
 
 // add pwm to lfo section
 // move synth into its own header file
@@ -29,158 +22,7 @@ double CosineInterpolate(double y1, double y2, double mu) {
 // change to more useful and consistent variable names
 // add cent detuning
 
-constexpr auto NUM_SECONDS = 5;
-constexpr auto SAMPLE_RATE = 48000;
 
-class Synth
-{
-private:
-    PaStream* stream{ 0 };
-    char message[20];
-    float a_amp;
-    float b_amp;
-    float c_amp;
-    //static int callback_idx;
-public:
-    // GENERAL
-    Wavetable_t m_oscA;
-    Wavetable_t m_oscB;
-    Wavetable_t m_oscC;
-    LFO_t m_lfoA;
-    LFO_t m_lfoB;
-    LFO_t m_lfoC;
-    std::vector<std::pair<Wavetable_t*, LFO_t*>> oscillators {{ &m_oscA, & m_lfoA}, { &m_oscB, &m_lfoB }, { &m_oscC, &m_lfoC }};
-    std::atomic<float> amplitude{ 0.1f };
-
-public:
-    Synth() {
-        sprintf_s(message, "Synth End ");
-        a_amp = 0.2f;
-        b_amp = 0.2f;
-        c_amp = 0.2f;
-        //callback_idx = 0;
-    }
-    bool open(PaDeviceIndex index) {
-        PaStreamParameters outputParameters{ };
-
-        outputParameters.device = index;
-        if (outputParameters.device == paNoDevice) {
-            return false;
-        }
-
-        const PaDeviceInfo* pInfo = Pa_GetDeviceInfo(index);
-        if (pInfo != 0)
-        {
-            printf("Output device name: %s\r", pInfo->name);
-        }
-
-        outputParameters.channelCount = 2;
-        outputParameters.sampleFormat = paFloat32;
-        outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
-        outputParameters.hostApiSpecificStreamInfo = NULL;
-
-        PaError err = Pa_OpenStream(&stream, NULL, &outputParameters, SAMPLE_RATE, 512, 0, &Synth::paCallback, this);
-
-        if (err != paNoError)
-        {
-            return false;
-        }
-
-        err = Pa_SetStreamFinishedCallback(stream, &Synth::paStreamFinished);
-
-        if (err != paNoError)
-        {
-            Pa_CloseStream(stream);
-            stream = 0;
-
-            return false;
-        }
-
-        return true;
-    }
-    bool close() {
-        if (stream == 0)
-            return false;
-        PaError err = Pa_CloseStream(stream);
-        stream = 0;
-        return (err == paNoError);
-    }
-    bool start() {
-        if (stream == 0)
-            return false;
-        PaError err = Pa_StartStream(stream);
-        return (err == paNoError);
-    }
-    bool stop() {
-        if (stream == 0)
-            return false;
-        PaError err = Pa_StopStream(stream);
-        return (err == paNoError);
-    }
-private:
-    int paCallbackMethod(const void* inputBuffer, 
-        void* outputBuffer, 
-        unsigned long framesPerBuffer,
-        const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags) {
-        float* out = (float*)outputBuffer;
-        (void)timeInfo;
-        (void)statusFlags;
-        (void)inputBuffer;
-
-        for (std::size_t i = 0; i < framesPerBuffer; i++) {
-            *out++ = amplitude.load(std::memory_order_relaxed) * (
-                a_amp * /*(half_f_add_one(2 * m_lfoA.lfo_amp * m_lfoA.interpolate_amp())) * */m_oscA.interpolate_left() +
-                b_amp * /*half_f_add_one(2 * m_lfoB.lfo_amp * m_lfoB.interpolate_amp()) * */m_oscB.interpolate_left() +
-                c_amp * /*half_f_add_one(2 * m_lfoC.lfo_amp * m_lfoC.interpolate_amp()) * */m_oscC.interpolate_left());
-            *out++ = amplitude.load(std::memory_order_relaxed) * (
-               a_amp * /*(half_f_add_one(2 * m_lfoA.lfo_amp * m_lfoA.interpolate_amp())) * */m_oscA.interpolate_right() +
-               b_amp * /*half_f_add_one(2 * m_lfoB.lfo_amp * m_lfoB.interpolate_amp()) * */m_oscB.interpolate_right() +
-               c_amp * /*half_f_add_one(2 * m_lfoC.lfo_amp * m_lfoC.interpolate_amp()) * */m_oscC.interpolate_right());
-
-            for (std::size_t j = 0; j < 3; ++j) {
-                oscillators[j].first->ps.left_phase += oscillators[j].first->ps.left_phase_inc;
-                if (oscillators[j].first->ps.left_phase >= TABLE_SIZE) oscillators[j].first->ps.left_phase -= TABLE_SIZE;
-                oscillators[j].first->ps.right_phase += oscillators[j].first->ps.right_phase_inc;
-                if (oscillators[j].first->ps.right_phase >= TABLE_SIZE) oscillators[j].first->ps.right_phase -= TABLE_SIZE;
-            }
-        }
-
-        return paContinue;
-    }
-
-    static int paCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo * timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
-        return ((Synth*)userData)->paCallbackMethod(inputBuffer, outputBuffer,
-            framesPerBuffer,
-            timeInfo,
-            statusFlags);
-    }
-    void paStreamFinishedMethod() {
-        printf("Stream Completed: %s\n", message);
-    }
-    static void paStreamFinished(void* userData) {
-        return ((Synth*)userData)->paStreamFinishedMethod();
-    }
-};
-
-class ScopedPaHandler {
-public:
-    ScopedPaHandler()
-        : _result(Pa_Initialize())
-    {
-    }
-    ~ScopedPaHandler()
-    {
-        if (_result == paNoError)
-        {
-            Pa_Terminate();
-        }
-    }
-
-    PaError result() const { return _result; }
-
-private:
-    PaError _result;
-};
 
 void glfw_error_callback(int error, const char* description)
 {
@@ -259,6 +101,7 @@ int main(int, char**) {
     bool show_oscB              = true;
     bool show_oscC              = true;
     bool show_osc_mixer         = true;
+    bool show_osc_scope         = true;
 
     // default window flags for use on all windows
     const bool no_titlebar            = false;
@@ -330,6 +173,10 @@ int main(int, char**) {
     std::atomic<bool> gui_updated { false };
     std::atomic<bool> pw_updated { false };
 
+    float osc_scopes[300];
+    int osc_scopes_offset = 0;
+    double osc_refresh_time = 0;
+
     SetupImGuiStyle();
     while (!glfwWindowShouldClose(window))
     {
@@ -342,17 +189,18 @@ int main(int, char**) {
         // this window shows the combined waveform from the 3 oscillators
         // with the correct amplitudes and pitches per channel
         if (show_wavetable_window) {
+            const int viewer_width = 3;
             ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
-            float sum_table_L[TABLE_SIZE]{};
-            for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
+            float sum_table_L[TABLE_SIZE * viewer_width]{};
+            for (std::size_t i = 0; i < TABLE_SIZE * viewer_width; ++i) {
                 float tmp = 0;
                 for (const auto& osc : st.oscillators) {
                     tmp += osc.first->interpolate_at(i * osc.first->ps.left_phase_inc) * osc.first->ps.amp;
                 }
                 sum_table_L[i] = tmp;
             }
-            float sum_table_R[TABLE_SIZE]{};
-            for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
+            float sum_table_R[TABLE_SIZE*4]{};
+            for (std::size_t i = 0; i < TABLE_SIZE * viewer_width; ++i) {
                 float tmp = 0;
                 for (const auto& osc : st.oscillators) {
                     tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
@@ -360,8 +208,8 @@ int main(int, char**) {
                 sum_table_R[i] = tmp;
             }
 
-            ImGui::PlotLines("Wavetable Visualisation, L", sum_table_L, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
-            ImGui::PlotLines("Wavetable Visualisation, R", sum_table_R, TABLE_SIZE, 0, NULL, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::PlotLines("L", sum_table_L, TABLE_SIZE * viewer_width, 0, NULL, -1.1f, 1.1f, ImVec2(viewer_width * 100.0f, 100.0f));
+            ImGui::PlotLines("R", sum_table_R, TABLE_SIZE * viewer_width, 0, NULL, -1.1f, 1.1f, ImVec2(viewer_width * 100.0f, 100.0f));
             ImGui::End();
         }
 
@@ -496,10 +344,25 @@ int main(int, char**) {
                     if (!lfo->lfo_enable) lfo->ps.left_phase = 0;
                     lfo->refresh_time += 0.1f / 60.0f;
                 }
-                ImGui::PlotLines("Lines", lfo->amps, IM_ARRAYSIZE(lfo->amps), lfo->amp_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
+                ImGui::PlotLines("LFO", lfo->amps, IM_ARRAYSIZE(lfo->amps), lfo->amp_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
             }
             ImGui::End();
             ++osc_idx;
+        }
+
+        if (show_osc_scope) {
+            ImGui::Begin("Oscilloscope", &show_osc_scope, window_flags);
+            if (osc_refresh_time == 0.0)
+                osc_refresh_time = ImGui::GetTime();
+
+            while (osc_refresh_time < ImGui::GetTime())
+            {
+                osc_scopes[osc_scopes_offset] = st.m_oscA.interpolate_left();
+                osc_scopes_offset = (osc_scopes_offset + 1) % IM_ARRAYSIZE(osc_scopes);
+                osc_refresh_time += 0.01f / 60.0f;
+            }
+            ImGui::PlotLines("Wave", osc_scopes, IM_ARRAYSIZE(osc_scopes), osc_scopes_offset, "", -1.0f, 1.0f, ImVec2(800.0f, 100.0f));
+            ImGui::End();
         }
 
         // mixer window, for adjusting the mix of the oscilators
@@ -525,6 +388,14 @@ int main(int, char**) {
                 st.m_lfoA.ps.left_phase.store(0);
                 st.m_lfoB.ps.left_phase.store(0);
                 st.m_lfoC.ps.left_phase.store(0);
+            }
+            if (ImGui::Button("Phase reset", ImVec2(120, 20))) {
+                st.m_oscA.ps.left_phase.store(0);
+                st.m_oscA.ps.right_phase.store(0);
+                st.m_oscB.ps.left_phase.store(0);
+                st.m_oscB.ps.right_phase.store(0);
+                st.m_oscC.ps.left_phase.store(0);
+                st.m_oscC.ps.right_phase.store(0);
             }
 
             ImGui::End();

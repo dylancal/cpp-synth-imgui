@@ -1,4 +1,0 @@
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Release\example_glfw_opengl3.vcxproj.CopyComplete
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Release\cpp-wavetable-synth.exe
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Release\glfw3.dll
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Release\portaudio.dll

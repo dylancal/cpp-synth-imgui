@@ -1,9 +1,10 @@
-D:\Dylan3\Code\CPP\cpp standalone\imgui\backends\imgui_impl_glfw.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui_impl_glfw.obj
-D:\Dylan3\Code\CPP\cpp standalone\imgui\backends\imgui_impl_opengl3.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui_impl_opengl3.obj
-D:\Dylan3\Code\CPP\cpp standalone\imgui\imgui.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui.obj
-D:\Dylan3\Code\CPP\cpp standalone\imgui\imgui_demo.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui_demo.obj
-D:\Dylan3\Code\CPP\cpp standalone\imgui\imgui_draw.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui_draw.obj
-D:\Dylan3\Code\CPP\cpp standalone\imgui\imgui_tables.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui_tables.obj
-D:\Dylan3\Code\CPP\cpp standalone\imgui\imgui_widgets.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\imgui_widgets.obj
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\main.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\main.obj
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\wavetable.cpp;D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Debug\wavetable.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\backends\imgui_impl_glfw.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui_impl_glfw.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\backends\imgui_impl_opengl3.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui_impl_opengl3.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\imgui.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\imgui_demo.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui_demo.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\imgui_draw.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui_draw.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\imgui_tables.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui_tables.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\imgui\imgui_widgets.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\imgui_widgets.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\main.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\main.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Synth.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\Synth.obj
+D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\wavetable.cpp;D:\Dylan3\Code\CPP\cpp-synth\cpp-synth-imgui\example_glfw_opengl3\Debug\wavetable.obj

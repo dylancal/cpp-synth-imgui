@@ -1,6 +1,0 @@
-﻿  main.cpp
-main.obj : error LNK2001: unresolved external symbol "public: static float Synth::c_amp" (?c_amp@Synth@@2MA)
-main.obj : error LNK2001: unresolved external symbol "public: static float Synth::b_amp" (?b_amp@Synth@@2MA)
-main.obj : error LNK2001: unresolved external symbol "public: static int Synth::callback_idx" (?callback_idx@Synth@@2HA)
-main.obj : error LNK2001: unresolved external symbol "public: static float Synth::a_amp" (?a_amp@Synth@@2MA)
-D:\Dylan3\Code\CPP\cpp standalone\example_glfw_opengl3\Release\cpp-wavetable-synth.exe : fatal error LNK1120: 4 unresolved externals

@@ -61,7 +61,7 @@ int main(int, char**) {
     // create our synth object and audio handler
     Synth st;
     ScopedPaHandler paInit;
-
+    
     // check that port audio streams are opened correctly with no errors
     if (paInit.result()) {
         fprintf(stderr, "An error occurred while using the portaudio stream\n");
@@ -145,7 +145,7 @@ int main(int, char**) {
     // create array of frequencies
     float freqs[72]{ };
     for (std::size_t i = 0; i < 72; ++i) {
-        freqs[i] = std::powf(2, (float)(i / 12.0));
+        freqs[i] = std::pow(2, (float)(i / 12.0));
     }
 
     // non atomic variables used for the gui

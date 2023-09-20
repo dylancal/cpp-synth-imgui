@@ -1,7 +1,7 @@
 #include "Synth.h"
 
 Synth::Synth() {
-     sprintf_s(message, "Synth End ");
+     sprintf(message, "Synth End ");
      a_amp = 0.2f;
      b_amp = 0.2f;
      c_amp = 0.2f;

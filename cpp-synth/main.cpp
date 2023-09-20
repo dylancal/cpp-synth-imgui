@@ -22,8 +22,6 @@
 // change to more useful and consistent variable names
 // add cent detuning
 
-
-
 void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);

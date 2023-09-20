@@ -6,6 +6,17 @@ A lookup-table synthesizer with 3 oscillators (with independent LFO), a volume m
 
 This project is in its early stages, and as such contains many bugs and inconsistencies which I hope to document and fix soon.
 
+# Installation
+A `CMakeLists.txt` file is provided, but configured to use my own `vcpkg` toolchain file. Install dependencies with `vcpkg` and update the file path to follow your own toolchain file.
+
+# `vcpkg` Dependencies
+- `egl-registry`
+- `glfw3`
+- `imgui`
+- `opengl-registry`
+- `opengl`
+- `portaudio`
+- 
 # Oscillators
 ![Screenshot 2023-06-26 171939](https://github.com/dylancal/cpp-synth-imgui/assets/51345001/f0999da3-28e2-4687-9882-7448f610a9be)
 
@@ -39,3 +50,4 @@ force each LFO to return to the start of its wavetable. This is useful for tempo
 ![Screenshot 2023-06-26 174239](https://github.com/dylancal/cpp-synth-imgui/assets/51345001/fddbc4c5-1334-499b-9b44-820d8fdec14e)
 
 The wavetable viewer is also very simple, showing the interaction between each oscillator's waveforms and pitches (3 table sizes long). This is appoximate since it does not span the entire range of what will be output by the program.
+

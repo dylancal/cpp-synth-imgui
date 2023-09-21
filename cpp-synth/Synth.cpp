@@ -2,9 +2,9 @@
 
 Synth::Synth() {
      sprintf(message, "Synth End ");
-     a_amp = 0.2f;
-     b_amp = 0.2f;
-     c_amp = 0.2f;
+     oscA.amp = 0.2f;
+     oscB.amp = 0.2f;
+     oscC.amp = 0.2f;
 }
 
 bool Synth::open(PaDeviceIndex index) {

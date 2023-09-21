@@ -4,25 +4,21 @@
 #include "portaudio.h"
 
 constexpr auto SAMPLE_RATE = 48000;
+struct Oscillator_t {
+  Wavetable_t wtbl;
+  LFO_t lfo;
+  std::atomic<float> amp;
+};
 
 class Synth
 {
 private:
     PaStream* stream{ 0 };
     char message[20];
-    float a_amp;
-    float b_amp;
-    float c_amp;
-    //static int callback_idx;
 public:
-    // GENERAL
-    Wavetable_t m_oscA;
-    Wavetable_t m_oscB;
-    Wavetable_t m_oscC;
-    LFO_t m_lfoA;
-    LFO_t m_lfoB;
-    LFO_t m_lfoC;
-    std::vector<std::pair<Wavetable_t*, LFO_t*>> oscillators {{ &m_oscA, & m_lfoA}, { &m_oscB, &m_lfoB }, { &m_oscC, &m_lfoC }};
+    Oscillator_t oscA;
+    Oscillator_t oscB;
+    Oscillator_t oscC;
     std::atomic<float> amplitude{ 0.1f };
 
 public:

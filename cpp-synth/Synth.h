@@ -19,6 +19,7 @@ public:
     Oscillator_t oscA;
     Oscillator_t oscB;
     Oscillator_t oscC;
+    std::vector<Oscillator_t*> oscs { &oscA, &oscB, &oscC };
     std::atomic<float> amplitude{ 0.1f };
 
 public:

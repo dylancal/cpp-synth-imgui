@@ -1,4 +1,5 @@
 #include "Synth.h"
+#include "wavetable.h"
 
 Synth::Synth() {
      sprintf(message, "Synth End ");
@@ -81,19 +82,18 @@ int Synth::paCallbackMethod(const void* inputBuffer,
 
     for (std::size_t i = 0; i < framesPerBuffer; i++) {
         *out++ = amplitude.load(std::memory_order_relaxed) * (
-            a_amp * m_oscA.ps.amp * /*(half_f_add_one(2 * m_lfoA.lfo_amp * m_lfoA.interpolate_amp())) * */m_oscA.interpolate_left() +
-            b_amp * m_oscB.ps.amp * /*half_f_add_one(2 * m_lfoB.lfo_amp * m_lfoB.interpolate_amp()) * */m_oscB.interpolate_left() +
-            c_amp * m_oscC.ps.amp * /*half_f_add_one(2 * m_lfoC.lfo_amp * m_lfoC.interpolate_amp()) * */m_oscC.interpolate_left());
+            oscA.amp * oscA.wtbl.interpolate_left() +
+            oscB.amp * oscB.wtbl.interpolate_left() +
+            oscC.amp * oscC.wtbl.interpolate_left());
         *out++ = amplitude.load(std::memory_order_relaxed) * (
-            a_amp * m_oscA.ps.amp */*(half_f_add_one(2 * m_lfoA.lfo_amp * m_lfoA.interpolate_amp())) * */m_oscA.interpolate_right() +
-            b_amp * m_oscB.ps.amp */*half_f_add_one(2 * m_lfoB.lfo_amp * m_lfoB.interpolate_amp()) * */m_oscB.interpolate_right() +
-            c_amp * m_oscC.ps.amp */*half_f_add_one(2 * m_lfoC.lfo_amp * m_lfoC.interpolate_amp()) * */m_oscC.interpolate_right());
-
+            oscA.amp * oscA.wtbl.interpolate_right() +
+            oscB.amp * oscB.wtbl.interpolate_right() +
+            oscC.amp * oscC.wtbl.interpolate_right());
         for (std::size_t j = 0; j < 3; ++j) {
-            oscillators[j].first->ps.left_phase += oscillators[j].first->ps.left_phase_inc;
-            if (oscillators[j].first->ps.left_phase >= TABLE_SIZE) oscillators[j].first->ps.left_phase -= TABLE_SIZE;
-            oscillators[j].first->ps.right_phase += oscillators[j].first->ps.right_phase_inc;
-            if (oscillators[j].first->ps.right_phase >= TABLE_SIZE) oscillators[j].first->ps.right_phase -= TABLE_SIZE;
+            oscs[j]->wtbl.ps.left_phase += oscs[j]->wtbl.ps.left_phase_inc;
+            if (oscs[j]->wtbl.ps.left_phase >= TABLE_SIZE) oscs[j]->wtbl.ps.left_phase -= TABLE_SIZE;
+            oscs[j]->wtbl.ps.right_phase += oscs[j]->wtbl.ps.right_phase_inc;
+            if (oscs[j]->wtbl.ps.right_phase >= TABLE_SIZE) oscs[j]->wtbl.ps.right_phase -= TABLE_SIZE; 
         }
     }
     return paContinue;

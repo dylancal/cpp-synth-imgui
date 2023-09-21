@@ -186,30 +186,30 @@ int main(int, char**) {
 
         // this window shows the combined waveform from the 3 oscillators
         // with the correct amplitudes and pitches per channel
-        if (show_wavetable_window) {
-            const int viewer_width = 3;
-            ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
-            float sum_table_L[TABLE_SIZE * viewer_width]{};
-            for (std::size_t i = 0; i < TABLE_SIZE * viewer_width; ++i) {
-                float tmp = 0;
-                for (const auto& osc : st.oscillators) {
-                    tmp += osc.first->interpolate_at(i * osc.first->ps.left_phase_inc) * osc.first->ps.amp;
-                }
-                sum_table_L[i] = tmp;
-            }
-            float sum_table_R[TABLE_SIZE*4]{};
-            for (std::size_t i = 0; i < TABLE_SIZE * viewer_width; ++i) {
-                float tmp = 0;
-                for (const auto& osc : st.oscillators) {
-                    tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
-                }
-                sum_table_R[i] = tmp;
-            }
-
-            ImGui::PlotLines("L", sum_table_L, TABLE_SIZE * viewer_width, 0, NULL, -1.1f, 1.1f, ImVec2(viewer_width * 100.0f, 100.0f));
-            ImGui::PlotLines("R", sum_table_R, TABLE_SIZE * viewer_width, 0, NULL, -1.1f, 1.1f, ImVec2(viewer_width * 100.0f, 100.0f));
-            ImGui::End();
-        }
+        // if (show_wavetable_window) {
+        //     const int viewer_width = 3;
+        //     ImGui::Begin("Wavetable Viewer", &show_wavetable_window, window_flags);
+        //     float sum_table_L[TABLE_SIZE * viewer_width]{};
+        //     for (std::size_t i = 0; i < TABLE_SIZE * viewer_width; ++i) {
+        //         float tmp = 0;
+        //         for (const auto& osc : st.oscillators) {
+        //             tmp += osc.first->interpolate_at(i * osc.first->ps.left_phase_inc) * osc.first->ps.amp;
+        //         }
+        //         sum_table_L[i] = tmp;
+        //     }
+        //     float sum_table_R[TABLE_SIZE*4]{};
+        //     for (std::size_t i = 0; i < TABLE_SIZE * viewer_width; ++i) {
+        //         float tmp = 0;
+        //         for (const auto& osc : st.oscillators) {
+        //             tmp += osc.first->interpolate_at(i * osc.first->ps.right_phase_inc) * osc.first->ps.amp;
+        //         }
+        //         sum_table_R[i] = tmp;
+        //     }
+        //
+        //     ImGui::PlotLines("L", sum_table_L, TABLE_SIZE * viewer_width, 0, NULL, -1.1f, 1.1f, ImVec2(viewer_width * 100.0f, 100.0f));
+        //     ImGui::PlotLines("R", sum_table_R, TABLE_SIZE * viewer_width, 0, NULL, -1.1f, 1.1f, ImVec2(viewer_width * 100.0f, 100.0f));
+        //     ImGui::End();
+        // }
 
         // idk why i have std::pair and shit and then also use an array and counter
         // just ignore the stupid shit
@@ -219,31 +219,28 @@ int main(int, char**) {
 
         // iteratively create oscillator windows, since they all function the same this is done
         // in a loop, saves writing it out 3 times
-        for (auto& oscpair : st.oscillators) {
-            Wavetable_t* osc = oscpair.first;
-            LFO_t* lfo = oscpair.second;
-
+        for (auto& osc : st.oscs) {
             ImGui::Begin((std::string("Oscillator ") + std::string(oscs[osc_idx])).c_str(), &show_oscA, window_flags);
-            ImGui::PlotLines("Waveform", (float*)osc->table, TABLE_SIZE, 0, nullptr, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
+            ImGui::PlotLines("Waveform", (float*)osc->wtbl.table, TABLE_SIZE, 0, nullptr, -1.1f, 1.1f, ImVec2(100.0f, 100.0f));
             ImGui::SeparatorText("Waveform");
-            if (ImGui::Combo("Waveform", (int*)&osc->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms)))
+            if (ImGui::Combo("Waveform", (int*)&osc->wtbl.ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms)))
                 gui_updated = true;
 
-            switch (osc->ps.current_waveform) {
+            switch (osc->wtbl.ps.current_waveform) {
             case 0: // saw not special 
-                gen_saw_wave(osc);
+                gen_saw_wave(&osc->wtbl);
                 break;
             case 1: // sin not special
-                gen_sin_wave(osc);
+                gen_sin_wave(&osc->wtbl);
                 break;
             case 2: // square has a pulse width
-                gen_sqr_wave(osc);
+                gen_sqr_wave(&osc->wtbl);
                 if (ImGui::CollapsingHeader("Square Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     if (ImGui::DragFloat("Pulse Width", pws[osc_idx], 0.0025f, 0.0f, 1.0f))
                         gui_updated = true;
                 break;
             case 3:
-                gen_tri_wave(osc, *pws[osc_idx]);
+                gen_tri_wave(&osc->wtbl, *pws[osc_idx]);
                 if (ImGui::CollapsingHeader("Triangle Settings", ImGuiTreeNodeFlags_DefaultOpen))
                     if (ImGui::DragFloat("Duty Cycle", pws[osc_idx], 0.0025f, 0.0f, 1.0f))
                         gui_updated = true;
@@ -255,10 +252,10 @@ int main(int, char**) {
             //if (ImGui::CollapsingHeader("General Settings", ImGuiTreeNodeFlags_DefaultOpen))
             //{
                 // change both pitches at once
-                if (ImGui::Combo("LR-Note", (int*)&osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                    osc->ps.current_note_right.store(osc->ps.current_note_left);
-                    *gui_right_phase_incs[osc_idx] = freqs[osc->ps.current_note_right];
-                    *gui_left_phase_incs[osc_idx] = freqs[osc->ps.current_note_left];
+                if (ImGui::Combo("LR-Note", (int*)&osc->wtbl.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                    osc->wtbl.ps.current_note_right.store(osc->wtbl.ps.current_note_left);
+                    *gui_right_phase_incs[osc_idx] = freqs[osc->wtbl.ps.current_note_right];
+                    *gui_left_phase_incs[osc_idx] = freqs[osc->wtbl.ps.current_note_left];
                     gui_updated = true;
                 }
                 if (ImGui::DragFloat("LR Increment", gui_left_phase_incs[osc_idx], 0.005f, 1, 20, "%f")) {
@@ -267,15 +264,15 @@ int main(int, char**) {
                     gui_updated = true;
                 }
                 if (ImGui::CollapsingHeader("Per-Channel Pitching")) {
-                    if (ImGui::Combo("L-Note", (int*)&osc->ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
-                        *gui_left_phase_incs[osc_idx] = freqs[osc->ps.current_note_left];
+                    if (ImGui::Combo("L-Note", (int*)&osc->wtbl.ps.current_note_left, notes, IM_ARRAYSIZE(notes))) {
+                        *gui_left_phase_incs[osc_idx] = freqs[osc->wtbl.ps.current_note_left];
                         gui_updated = true;
                     }
                     // pitch fine tune
                     if (ImGui::DragFloat("Left Phase Increment", gui_left_phase_incs[osc_idx], 0.005f, 0.01f, 20.0f, "%f"))
                         gui_updated = true;
-                    if (ImGui::Combo("R-Note", (int*)&osc->ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
-                        *gui_right_phase_incs[osc_idx] = freqs[osc->ps.current_note_right];
+                    if (ImGui::Combo("R-Note", (int*)&osc->wtbl.ps.current_note_right, notes, IM_ARRAYSIZE(notes))) {
+                        *gui_right_phase_incs[osc_idx] = freqs[osc->wtbl.ps.current_note_right];
                         gui_updated = true;
                     }
                     if (ImGui::DragFloat("Right Phase Increment", gui_right_phase_incs[osc_idx], 0.005f, 0.01f, 20.0f, "%f"))
@@ -283,121 +280,121 @@ int main(int, char**) {
                 }
                 
             //}
-            ImGui::SeparatorText("LFO");
-            // low frequency oscillator, one per osc with its own waveform
-            if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                if (ImGui::Combo("LFO Waveform", (int*)&lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms)))
-                    gui_updated = true;
-
-                // switch similarly to the osc waveforms
-                switch (lfo->ps.current_waveform) {
-                case 0:
-                    gen_saw_wave(*lfo);
-                    break;
-                case 1:
-                    gen_sin_wave(*lfo);
-                    break;
-                case 2:
-                    gen_sqr_wave(*lfo, lfo->ps.pulse_width);
-                    if (ImGui::CollapsingHeader("Square Settings "))
-                    {
-                        if (ImGui::DragFloat("Pulse Width ", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f))
-                            gui_updated = true;
-                    }
-                    break;
-                case 3:
-                    gen_tri_wave(*lfo, lfo->ps.pulse_width);
-                    if (ImGui::CollapsingHeader("Triangle Settings "))
-                    {
-                        if (ImGui::DragFloat("Midpoint ", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f))
-                            gui_updated = true;
-                    }
-                    break;
-                }
-
-                if (ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable))
-                    gui_updated = true;
-                if (ImGui::DragFloat("LFO Rate", (float*)&lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f"))
-                    gui_updated = true;
-                if (ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_amp, 0.005f, -1.0f, 1.0f, "%f"))
-                    gui_updated = true;
-                    
-                // whilst it is a terrible idea, currently the LFO is tied
-                // to the GUI frame rate, and window actions such as dragging a window
-                // will pause the LFO. this is along with other unintented side-effects
-                // such as inconsistent pacing
-                // the lfo needs to be untied from the GUI asap
-                if (lfo->refresh_time == 0.0)
-                    lfo->refresh_time = ImGui::GetTime();
-
-                // animate and progress the LFO, looks cool but is terrible for pacing!
-                // depending on how i feel i might keep this
-                while (lfo->refresh_time < ImGui::GetTime())
-                {
-                    lfo->amps[lfo->amp_offset] = lfo->lfo_amp * lfo->interpolate_left();
-                    lfo->amp_offset = (lfo->amp_offset + 1) % IM_ARRAYSIZE(lfo->amps);
-                    lfo->ps.left_phase += lfo->ps.left_phase_inc;
-                    if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;
-                    if (!lfo->lfo_enable) lfo->ps.left_phase = 0;
-                    lfo->refresh_time += 0.1f / 60.0f;
-                }
-                ImGui::PlotLines("LFO", lfo->amps, IM_ARRAYSIZE(lfo->amps), lfo->amp_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
-            }
+            // ImGui::SeparatorText("LFO");
+            // // low frequency oscillator, one per osc with its own waveform
+            // if (ImGui::CollapsingHeader("LFO Settings", ImGuiTreeNodeFlags_DefaultOpen))
+            // {
+            //     if (ImGui::Combo("LFO Waveform", (int*)&lfo->ps.current_waveform, waveforms, IM_ARRAYSIZE(waveforms)))
+            //         gui_updated = true;
+            //
+            //     // switch similarly to the osc waveforms
+            //     switch (lfo->ps.current_waveform) {
+            //     case 0:
+            //         gen_saw_wave(*lfo);
+            //         break;
+            //     case 1:
+            //         gen_sin_wave(*lfo);
+            //         break;
+            //     case 2:
+            //         gen_sqr_wave(*lfo, lfo->ps.pulse_width);
+            //         if (ImGui::CollapsingHeader("Square Settings "))
+            //         {
+            //             if (ImGui::DragFloat("Pulse Width ", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f))
+            //                 gui_updated = true;
+            //         }
+            //         break;
+            //     case 3:
+            //         gen_tri_wave(*lfo, lfo->ps.pulse_width);
+            //         if (ImGui::CollapsingHeader("Triangle Settings "))
+            //         {
+            //             if (ImGui::DragFloat("Midpoint ", (float*)&lfo->ps.pulse_width, 0.0025f, 0.0f, 1.0f))
+            //                 gui_updated = true;
+            //         }
+            //         break;
+            //     }
+            //
+            //     if (ImGui::Checkbox("Enable LFO?", &lfo->lfo_enable))
+            //         gui_updated = true;
+            //     if (ImGui::DragFloat("LFO Rate", (float*)&lfo->ps.left_phase_inc, 0.005f, 0.0f, 15.0f, "%f"))
+            //         gui_updated = true;
+            //     if (ImGui::DragFloat("LFO Amp Depth", &lfo->lfo_amp, 0.005f, -1.0f, 1.0f, "%f"))
+            //         gui_updated = true;
+            //         
+            //     // whilst it is a terrible idea, currently the LFO is tied
+            //     // to the GUI frame rate, and window actions such as dragging a window
+            //     // will pause the LFO. this is along with other unintented side-effects
+            //     // such as inconsistent pacing
+            //     // the lfo needs to be untied from the GUI asap
+            //     if (lfo->refresh_time == 0.0)
+            //         lfo->refresh_time = ImGui::GetTime();
+            //
+            //     // animate and progress the LFO, looks cool but is terrible for pacing!
+            //     // depending on how i feel i might keep this
+            //     while (lfo->refresh_time < ImGui::GetTime())
+            //     {
+            //         lfo->amps[lfo->amp_offset] = lfo->lfo_amp * lfo->interpolate_left();
+            //         lfo->amp_offset = (lfo->amp_offset + 1) % IM_ARRAYSIZE(lfo->amps);
+            //         lfo->ps.left_phase += lfo->ps.left_phase_inc;
+            //         if (lfo->ps.left_phase >= TABLE_SIZE) lfo->ps.left_phase -= TABLE_SIZE;
+            //         if (!lfo->lfo_enable) lfo->ps.left_phase = 0;
+            //         lfo->refresh_time += 0.1f / 60.0f;
+            //     }
+            //     ImGui::PlotLines("LFO", lfo->amps, IM_ARRAYSIZE(lfo->amps), lfo->amp_offset, "", -1.0f, 1.0f, ImVec2(200.0f, 100.0f));
+            // }
             ImGui::End();
             ++osc_idx;
         }
 
-        if (show_osc_scope) {
-            ImGui::Begin("Oscilloscope", &show_osc_scope, window_flags);
-            if (osc_refresh_time == 0.0)
-                osc_refresh_time = ImGui::GetTime();
-
-            while (osc_refresh_time < ImGui::GetTime())
-            {
-                osc_scopes[osc_scopes_offset] = st.m_oscA.interpolate_left();
-                osc_scopes_offset = (osc_scopes_offset + 1) % IM_ARRAYSIZE(osc_scopes);
-                osc_refresh_time += 0.01f / 60.0f;
-            }
-            ImGui::PlotLines("Wave", osc_scopes, IM_ARRAYSIZE(osc_scopes), osc_scopes_offset, "", -1.0f, 1.0f, ImVec2(800.0f, 100.0f));
-            ImGui::End();
-        }
+        // if (show_osc_scope) {
+        //     ImGui::Begin("Oscilloscope", &show_osc_scope, window_flags);
+        //     if (osc_refresh_time == 0.0)
+        //         osc_refresh_time = ImGui::GetTime();
+        //
+        //     while (osc_refresh_time < ImGui::GetTime())
+        //     {
+        //         osc_scopes[osc_scopes_offset] = st.m_oscA.interpolate_left();
+        //         osc_scopes_offset = (osc_scopes_offset + 1) % IM_ARRAYSIZE(osc_scopes);
+        //         osc_refresh_time += 0.01f / 60.0f;
+        //     }
+        //     ImGui::PlotLines("Wave", osc_scopes, IM_ARRAYSIZE(osc_scopes), osc_scopes_offset, "", -1.0f, 1.0f, ImVec2(800.0f, 100.0f));
+        //     ImGui::End();
+        // }
 
         // mixer window, for adjusting the mix of the oscilators
         // along with the global amplitude
-        if (show_osc_mixer) {
-            ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
-            const float spacing = 4;
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
-            if (ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, ""))
-                gui_updated = true;
-            ImGui::SameLine();
-            if (ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, ""))
-                gui_updated = true;
-            ImGui::SameLine();
-            if (ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, ""))
-                gui_updated = true;
-            ImGui::SameLine();
-            ImGui::SameLine();
-            if (ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, ""))
-                gui_updated = true;
-            ImGui::PopStyleVar();
-            if (ImGui::Button("LFO Sync", ImVec2(120, 20))) {
-                st.m_lfoA.ps.left_phase.store(0);
-                st.m_lfoB.ps.left_phase.store(0);
-                st.m_lfoC.ps.left_phase.store(0);
-            }
-            if (ImGui::Button("Phase reset", ImVec2(120, 20))) {
-                st.m_oscA.ps.left_phase.store(0);
-                st.m_oscA.ps.right_phase.store(0);
-                st.m_oscB.ps.left_phase.store(0);
-                st.m_oscB.ps.right_phase.store(0);
-                st.m_oscC.ps.left_phase.store(0);
-                st.m_oscC.ps.right_phase.store(0);
-            }
-
-            ImGui::End();
-        }
+        // if (show_osc_mixer) {
+        //     ImGui::Begin("Volume Mixer", &show_osc_mixer, window_flags);
+        //     const float spacing = 4;
+        //     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
+        //     if (ImGui::VSliderFloat("A", ImVec2(20, 160), &gui_oscA_amp, 0.0f, 0.5f, ""))
+        //         gui_updated = true;
+        //     ImGui::SameLine();
+        //     if (ImGui::VSliderFloat("B", ImVec2(20, 160), &gui_oscB_amp, 0.0f, 0.5f, ""))
+        //         gui_updated = true;
+        //     ImGui::SameLine();
+        //     if (ImGui::VSliderFloat("C", ImVec2(20, 160), &gui_oscC_amp, 0.0f, 0.5f, ""))
+        //         gui_updated = true;
+        //     ImGui::SameLine();
+        //     ImGui::SameLine();
+        //     if (ImGui::VSliderFloat("OUT", ImVec2(20, 160), &gui_global_amp, 0.0f, 0.5f, ""))
+        //         gui_updated = true;
+        //     ImGui::PopStyleVar();
+        //     if (ImGui::Button("LFO Sync", ImVec2(120, 20))) {
+        //         st.m_lfoA.ps.left_phase.store(0);
+        //         st.m_lfoB.ps.left_phase.store(0);
+        //         st.m_lfoC.ps.left_phase.store(0);
+        //     }
+        //     if (ImGui::Button("Phase reset", ImVec2(120, 20))) {
+        //         st.m_oscA.ps.left_phase.store(0);
+        //         st.m_oscA.ps.right_phase.store(0);
+        //         st.m_oscB.ps.left_phase.store(0);
+        //         st.m_oscB.ps.right_phase.store(0);
+        //         st.m_oscC.ps.left_phase.store(0);
+        //         st.m_oscC.ps.right_phase.store(0);
+        //     }
+        //
+        //     ImGui::End();
+        // }
 
         // the menu bar, currently not really used at all apart from quitting
         if (ImGui::BeginMainMenuBar()) {
@@ -433,18 +430,18 @@ int main(int, char**) {
         // only when the GUI has actually been updated
         // then update the atomic variables in the oscillators
         if (gui_updated) {
-            st.m_oscA.ps.amp.store(gui_oscA_amp);
-            st.m_oscB.ps.amp.store(gui_oscB_amp);
-            st.m_oscC.ps.amp.store(gui_oscC_amp);
-            st.m_oscA.ps.left_phase_inc.store(gui_oscA_lpi);
-            st.m_oscA.ps.right_phase_inc.store(gui_oscA_rpi);
-            st.m_oscB.ps.left_phase_inc.store(gui_oscB_lpi);
-            st.m_oscB.ps.right_phase_inc.store(gui_oscB_rpi);
-            st.m_oscC.ps.left_phase_inc.store(gui_oscC_lpi);
-            st.m_oscC.ps.right_phase_inc.store(gui_oscC_rpi);
-            st.m_oscA.ps.pulse_width.store(gui_oscA_pw);
-            st.m_oscB.ps.pulse_width.store(gui_oscB_pw);
-            st.m_oscC.ps.pulse_width.store(gui_oscC_pw);
+            st.oscA.wtbl.ps.amp.store(gui_oscA_amp);
+            st.oscB.wtbl.ps.amp.store(gui_oscB_amp);
+            st.oscC.wtbl.ps.amp.store(gui_oscC_amp);
+            st.oscA.wtbl.ps.left_phase_inc.store(gui_oscA_lpi);
+            st.oscA.wtbl.ps.right_phase_inc.store(gui_oscA_rpi);
+            st.oscB.wtbl.ps.left_phase_inc.store(gui_oscB_lpi);
+            st.oscB.wtbl.ps.right_phase_inc.store(gui_oscB_rpi);
+            st.oscC.wtbl.ps.left_phase_inc.store(gui_oscC_lpi);
+            st.oscC.wtbl.ps.right_phase_inc.store(gui_oscC_rpi);
+            st.oscA.wtbl.ps.pulse_width.store(gui_oscA_pw);
+            st.oscB.wtbl.ps.pulse_width.store(gui_oscB_pw);
+            st.oscC.wtbl.ps.pulse_width.store(gui_oscC_pw);
             st.amplitude.store(gui_global_amp);
         }
 
